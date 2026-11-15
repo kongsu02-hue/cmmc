@@ -121,7 +121,7 @@ footer{color:var(--muted);font-size:.82rem;padding:20px 0 40px;border-top:1px so
       <ol style="margin:0;padding-left:18px;font-size:.92rem">
         <li><b>범위 정의</b>: FCI가 닿는 자산 고르기</li>
         <li><b>PC 점검·조치</b>: PowerShell 명령으로 확인하고 고치기. <code>| Out-File 파일명</code>으로 증거 저장</li>
-        <li><b>네트워크</b>: 공유기 관리 화면에서 미승인 장치, 포트포워딩, Wi-Fi, 망 분리를 점검·조치</li>
+        <li><b>네트워크</b>: NAC, 경계 방화벽, VLAN·스위치 포트, ACL, Wi-Fi를 설정하고 포트 스캔·분리 시험으로 확인</li>
         <li><b>설정·문서 작업</b>: 메일·업데이트, 절차서와 기록부</li>
         <li><b>자체평가</b>: 15개를 직접 판정</li>
         <li><b>SPRS 제출</b>: 모두 충족해야 제출 가능</li>
@@ -157,7 +157,16 @@ footer{color:var(--muted);font-size:.82rem;padding:20px 0 40px;border-top:1px so
 
 <section class="panel" id="p-net" hidden>
   <h2>3. 네트워크</h2>
-  <p class="sub">가상정밀(주)의 공유기 관리 화면입니다. 망 구성도를 보고 위험한 연결을 찾아 고친 뒤, <b>외부 포트 스캔</b>과 <b>분리 시험</b>으로 결과를 확인하고 증거를 남기세요. 구성도는 설정에 따라 바뀝니다.</p>
+  <p class="sub">가상정밀(주)의 공유기·관리형 스위치 화면입니다. 지금은 모든 장치가 <b>VLAN 1 한 망</b>에 있습니다. <b>NAC</b>로 장치를 통제하고, <b>경계 방화벽</b> 정책을 세우고, <b>VLAN</b>으로 망을 나눈 뒤 <b>ACL</b>로 VLAN 간·아웃바운드 통신을 정하세요. 결과는 외부 포트 스캔과 분리·아웃바운드 시험으로 확인하고 증거를 남깁니다.</p>
+  <details class="card" style="margin-bottom:12px"><summary><b>설계 목표 (정답 기준)</b></summary>
+    <div class="tbl" style="margin-top:8px"><table>
+      <tr><th>영역</th><th>목표 상태</th><th>요구사항</th></tr>
+      <tr><td>NAC</td><td>인증 방식 사용(MAC 또는 802.1X), 미등록 장치 차단·격리, 유선 포트 포함, 장치 8대 모두 등록 판단</td><td>AC.i · IA.v · IA.vi</td></tr>
+      <tr><td>경계 방화벽</td><td>외부→내부 기본 차단, 인바운드는 DMZ 웹서버 443만, UPnP 끔</td><td>SC.x · AC.iii</td></tr>
+      <tr><td>VLAN</td><td>업무 PC·NAS·복합기 = VLAN 10, 웹서버 = VLAN 30(DMZ), AP·업링크 = 트렁크, SSID GSJ-Office=10 · GSJ-Guest=20</td><td>SC.xi</td></tr>
+      <tr><td>ACL</td><td>손님→업무 차단, DMZ→업무 차단, 업무→DMZ 443 허용, 업무→인터넷 445·3389 차단, 손님→인터넷 443 허용</td><td>SC.x · SC.xi</td></tr>
+    </table></div>
+    <p class="muted" style="font-size:.85rem;margin:6px 0 0">레벨 1 평가 목표상 SC.L1-b.1.x는 <b>외부 경계</b>와 <b>주요 내부 경계</b> 모두에서 통신을 감시·통제·보호해야 합니다. 이 실습에서는 VLAN 간 ACL이 내부 경계 통제입니다.</p></details>
   <div class="card" style="margin-bottom:12px"><h3>망 구성도</h3><div id="topo" style="max-width:860px"></div>
     <div class="muted" style="font-size:.8rem">빨간 점선: 인터넷에서 들어오는 포트포워딩 · ⚠ 빨간 장치: 미승인·위험 · ⛔ 회색: 차단됨 · 빨간 테두리: 분리 안 됨</div></div>
   <div class="layout net">
@@ -166,6 +175,7 @@ footer{color:var(--muted);font-size:.82rem;padding:20px 0 40px;border-top:1px so
         <p style="margin:0 0 6px"><button class="btn small" data-net="scan">🔍 외부 포트 스캔 (인터넷에서 본 우리 회사)</button></p>
         <p style="margin:0 0 6px"><button class="btn small" data-net="t-guest">🧪 분리 시험: 손님 Wi-Fi 노트북 → NAS 192.168.10.20:445</button></p>
         <p style="margin:0 0 6px"><button class="btn small" data-net="t-web">🧪 분리 시험: 공개 웹서버 → NAS 192.168.10.20:445</button></p>
+        <p style="margin:0 0 6px"><button class="btn small" data-net="t-out">🧪 아웃바운드 시험: 업무 PC → 인터넷 443·445·3389</button></p>
         <pre class="term" id="netOut" style="height:190px"></pre>
         <button class="btn ghost small" data-netev="tools">📸 점검 결과를 증거로 저장</button>
         <div class="msg" id="netToolMsg"></div></div>
@@ -209,7 +219,7 @@ footer{color:var(--muted);font-size:.82rem;padding:20px 0 40px;border-top:1px so
 
 <script>
 "use strict";
-const KEY = "cmmc-l1-sim-v2";
+const KEY = "cmmc-l1-sim-v3";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -254,7 +264,16 @@ function newState() {
       firmware: "1.0.8",
       wifiSec: "WPA/WPA2 혼합 (TKIP)",
       wifiPwChanged: false,
-      guestIso: false,
+      guestIso: false,           // 파생값: VLAN 설정에서 계산 (syncNet)
+      inboundDefault: r() ? "allow" : "deny",
+      nac: { method: "none", unknown: "allow", wired: false },
+      ports: [
+        { n: 1, dev: "KIM-PC" }, { n: 2, dev: "LEE-PC" }, { n: 3, dev: "CHOI-PC" }, { n: 4, dev: "GSJ-NAS" },
+        { n: 5, dev: "HP-M428" }, { n: 6, dev: "GSJ-WEB" }, { n: 7, dev: "Wi-Fi AP (GSJ-Office · GSJ-Guest)" }, { n: 8, dev: "공유기 업링크" },
+      ].map(p => ({ ...p, mode: p.n === 8 ? "trunk" : "access", vlan: 1 })),
+      ssid: { office: 1, guest: 1 },
+      acl: [],
+      aclDefault: "allow",
     },
     winUpdate: false,
     pendingApps: 7 + Math.floor(Math.random() * 6),
@@ -284,8 +303,10 @@ const DAILY = ["kim", "lee", "choi"];
 const REQS = [
   { id: "AC.L1-b.1.i", nist: "3.1.1", name: "승인된 사용자·프로세스·장치만 접근",
     check: s => { const p = []; if (s.users.Guest.enabled) p.push("Guest 계정 활성"); if (s.users.park && s.users.park.enabled) p.push("퇴사자 park 계정 활성");
-      s.net.devices.filter(d => d.truth === "block" && d.decide !== "block").forEach(d => p.push(`미승인 장치 접속 중: ${d.host}`)); return p; },
-    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"park\"", "Disable-LocalUser -Name \"Guest\"", "arp -a"], ops: "네트워크 › 연결된 장치" },
+      s.net.devices.filter(d => d.truth === "block" && !isBlocked(d)).forEach(d => p.push(`미승인 장치 접속 중: ${d.host}`));
+      if (!nacOn()) p.push("NAC 미적용 — DHCP 차단만으로는 고정 IP 설정으로 우회 가능"); else if (s.net.nac.unknown === "allow") p.push("NAC: 미등록 장치를 기본 허용");
+      return p; },
+    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"park\"", "Disable-LocalUser -Name \"Guest\"", "arp -a"], ops: "네트워크 › NAC · 장치 등록" },
   { id: "AC.L1-b.1.ii", nist: "3.1.2", name: "허용된 거래·기능만 수행 (권한 최소화)",
     check: s => { const p = []; DAILY.forEach(u => { if (s.users[u] && s.users[u].admin) p.push(`업무용 계정 ${u}가 관리자`); });
       if (!Object.entries(s.users).some(([n, u]) => n.startsWith("admin") && u.enabled && u.admin)) p.push("별도 관리자 계정 없음"); return p; },
@@ -300,11 +321,12 @@ const REQS = [
     check: s => { const p = []; if (!s.docs.acctMap) p.push("계정-사용자 대응표 미작성"); if (s.users.office && s.users.office.enabled) p.push("공용 계정 office 사용 중");
       const und = s.net.devices.filter(d => !d.decide).length; if (und) p.push(`식별하지 않은 네트워크 장치 ${und}대`);
       s.net.devices.filter(d => d.truth === "allow" && d.decide === "block").forEach(d => p.push(`업무 장치 ${d.host}를 잘못 차단`)); return p; },
-    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"office\"", "arp -a"], ops: "계정-사용자 대응표, 네트워크 › 연결된 장치" },
+    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"office\"", "arp -a"], ops: "계정-사용자 대응표, 네트워크 › NAC · 장치 등록" },
   { id: "IA.L1-b.1.vi", nist: "3.5.2", name: "접근 전 인증 (사용자·장치)",
     check: s => { const p = []; if (s.minpw < 8) p.push(`최소 암호 길이 ${s.minpw} (교육 기준 8 이상)`); if (!s.mfa) p.push("업무 메일 2단계 인증 미적용");
-      if (!/^WPA2-AES|^WPA3/.test(s.net.wifiSec)) p.push(`업무 Wi-Fi 보안 방식 취약: ${s.net.wifiSec}`); if (!s.net.wifiPwChanged) p.push("퇴사자 발생 후 Wi-Fi 암호 미변경"); return p; },
-    hint: ["net accounts", "net accounts /minpwlen:12"], ops: "업무 메일 관리, 네트워크 › Wi-Fi" },
+      if (!/^WPA2-AES|^WPA3/.test(s.net.wifiSec)) p.push(`업무 Wi-Fi 보안 방식 취약: ${s.net.wifiSec}`); if (!s.net.wifiPwChanged) p.push("퇴사자 발생 후 Wi-Fi 암호 미변경");
+      if (!nacOn()) p.push("장치 인증(NAC) 미적용"); if (!s.net.nac.wired) p.push("유선 스위치 포트에 NAC(포트 인증) 미적용"); return p; },
+    hint: ["net accounts", "net accounts /minpwlen:12"], ops: "업무 메일 관리, 네트워크 › NAC · Wi-Fi" },
   { id: "MP.L1-b.1.vii", nist: "3.8.3", name: "매체 폐기·재사용 전 완전 삭제",
     check: s => { const p = []; if (!s.cipherE) p.push("실습용 USB(E:) 완전 삭제 안 함"); if (!s.mediaLog.length) p.push("매체 폐기 기록 없음"); return p; },
     hint: ["cipher /w:E:\\"], ops: "매체 폐기 기록부" },
@@ -315,11 +337,25 @@ const REQS = [
   { id: "SC.L1-b.1.x", nist: "3.13.1", name: "경계에서 통신 감시·통제·보호",
     check: s => { const p = []; Object.entries(s.fw).forEach(([k, v]) => { if (!v) p.push(`방화벽 ${k} 프로필 꺼짐`); }); if (s.router.remote) p.push("공유기 원격 관리 켜짐"); if (s.router.defaultPw) p.push("공유기 기본 관리자 암호");
       if (s.net.upnp) p.push("UPnP 켜짐(내부 장치가 임의로 포트 개방)"); if (s.net.portfw.some(f => f.on && f.ext === 8080)) p.push("NAS 관리 화면 인터넷 노출(8080)");
-      if (!s.net.log) p.push("공유기 트래픽·차단 로그 꺼짐(감시 불가)"); return p; },
-    hint: ["Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"], ops: "네트워크 › 공유기 관리·포트 포워딩·외부 포트 스캔" },
+      if (!s.net.log) p.push("공유기 트래픽·차단 로그 꺼짐(감시 불가)");
+      if (s.net.inboundDefault !== "deny") p.push("경계 방화벽: 외부→내부 기본 정책이 '허용'");
+      const biz = vlanOfHost("KIM-PC");
+      if (aclAllows(biz, "internet", 445) || aclAllows(biz, "internet", 3389)) p.push("아웃바운드: 업무망→인터넷 SMB(445)·RDP(3389) 차단 규칙 없음");
+      if (!aclAllows(biz, "internet", 443)) p.push("업무망 인터넷(443)까지 차단됨 — 업무 장애");
+      if (aclAllows(guestV(), vlanOfHost("GSJ-NAS"), 445)) p.push("내부 경계: 손님망→업무망 통제 없음 (VLAN·ACL)"); return p; },
+    hint: ["Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True"], ops: "네트워크 › 경계 방화벽·ACL·공유기 관리·외부 포트 스캔" },
   { id: "SC.L1-b.1.xi", nist: "3.13.5", name: "공개 접근 구성요소 분리",
-    check: s => { const p = []; if (!s.net.guestIso) p.push("손님 Wi-Fi가 업무망과 같은 네트워크"); if (!s.net.webInDmz) p.push("공개 웹서버가 업무망(192.168.10.0/24)에 있음"); return p; },
-    hint: ["Test-NetConnection -ComputerName 192.168.10.40 -Port 443"], ops: "네트워크 › 서버 배치·Wi-Fi·분리 시험" },
+    check: s => { const p = [], n = s.net, nas = vlanOfHost("GSJ-NAS"), web = vlanOfHost("GSJ-WEB");
+      if (n.ports[7].mode !== "trunk") p.push("공유기 업링크가 트렁크가 아님 — VLAN 간 라우팅 불가");
+      if (n.ports.slice(0, 5).some(pt => pt.mode !== "access" || pt.vlan !== 10) || ssidVlan("office") !== 10) p.push("업무 장치·업무 SSID가 VLAN 10에 있지 않음");
+      if (!n.guestIso) p.push("손님 Wi-Fi가 VLAN 20으로 분리 안 됨 (SSID 매핑·AP 포트 트렁크 확인)");
+      if (!n.webInDmz) p.push("공개 웹서버 포트가 DMZ VLAN 30이 아님");
+      if (aclAllows(guestV(), nas, 445)) p.push("ACL: 손님→업무 NAS 접근 허용됨");
+      if (aclAllows(web, nas, 445)) p.push("ACL: DMZ 웹서버→업무 NAS 접근 허용됨");
+      if (!aclAllows(vlanOfHost("KIM-PC"), web, 443)) p.push("업무망→웹서버(443)까지 차단됨 — 업무 장애");
+      if (!aclAllows(guestV(), "internet", 443)) p.push("손님 인터넷(443)까지 차단됨 — 서비스 장애");
+      return p; },
+    hint: ["Test-NetConnection -ComputerName 192.168.10.40 -Port 443", "arp -a"], ops: "네트워크 › VLAN · 스위치 포트, ACL, 분리 시험" },
   { id: "SI.L1-b.1.xii", nist: "3.14.1", name: "결함 적시 식별·보고·수정",
     check: s => { const p = []; if (!s.winUpdate) p.push("Windows 업데이트 미적용"); if (s.pendingApps) p.push(`프로그램 업데이트 ${s.pendingApps}개 대기`); if (s.net.firmware !== "1.2.3") p.push(`공유기 펌웨어 구버전 ${s.net.firmware}`); return p; },
     hint: ["Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object { [datetime]$_.InstalledOn } -Descending | Select-Object -First 5 HotFixID, InstalledOn", "winget upgrade", "winget upgrade --all"], ops: "Windows 업데이트" },
@@ -333,6 +369,34 @@ const REQS = [
     hint: ["Start-MpScan -ScanType QuickScan", "Start-MpScan -ScanType CustomScan -ScanPath E:\\"] },
 ];
 const R = Object.fromEntries(REQS.map(r => [r.id, r]));
+
+/* ---------- 네트워크 모델: VLAN · ACL · NAC ---------- */
+const VLAN_NAME = { 1: "VLAN 1 (기본·전체 한 망)", 10: "VLAN 10 업무", 20: "VLAN 20 손님", 30: "VLAN 30 DMZ", 99: "VLAN 99 격리" };
+const AP = () => S.net.ports[6];
+const ssidVlan = (which) => AP().mode === "trunk" ? S.net.ssid[which] : AP().vlan;   // AP가 access면 모든 SSID가 그 VLAN으로
+const portOf = (host) => S.net.ports.find(p => p.dev === host);
+const vlanOfHost = (host) => { const p = portOf(host); return p ? (p.mode === "access" ? p.vlan : 1) : ssidVlan("office"); };
+const guestV = () => ssidVlan("guest");
+// ACL: 위에서부터 처음 일치하는 규칙 적용, 없으면 기본 동작. 같은 VLAN 안의 통신은 라우터를 거치지 않으므로 ACL 대상이 아님
+function aclAllows(src, dst, port) {
+  src = String(src); dst = String(dst); port = String(port);
+  if (src === dst) return true;
+  for (const r of S.net.acl) if ((r.src === "any" || r.src === src) && (r.dst === "any" || r.dst === dst) && (r.port === "any" || r.port === port)) return r.act === "allow";
+  return S.net.aclDefault === "allow";
+}
+const aclHit = (src, dst, port) => { src = String(src); dst = String(dst); port = String(port); if (src === dst) return "같은 VLAN — 라우터·ACL을 거치지 않음";
+  const i = S.net.acl.findIndex(r => (r.src === "any" || r.src === src) && (r.dst === "any" || r.dst === dst) && (r.port === "any" || r.port === port));
+  return i < 0 ? `일치 규칙 없음 → 기본 동작 '${S.net.aclDefault === "allow" ? "허용" : "차단"}'` : `규칙 #${i + 1} 일치`; };
+// NAC: 등록(승인)되지 않은 장치는 NAC 정책에 따라 차단·격리. NAC가 없으면 공유기 DHCP 차단만 적용(고정 IP로 우회 가능)
+const nacOn = () => S.net.nac.method !== "none";
+const isQuarantined = (d) => d.decide !== "allow" && d.truth === "block" && nacOn() && S.net.nac.unknown === "quarantine";
+const isBlocked = (d) => d.decide === "block" || (d.decide !== "allow" && nacOn() && S.net.nac.unknown !== "allow");
+function syncNet() {
+  const n = S.net;
+  n.guestIso = ssidVlan("guest") === 20;
+  n.webInDmz = n.ports[5].mode === "access" && n.ports[5].vlan === 30;
+  syncWeb();
+}
 const problems = (id) => R[id].check(S);
 const isMet = (id) => problems(id).length === 0;
 
@@ -344,6 +408,7 @@ function addEvidence(file, reqIds, src) {
 
 /* ---------- 대시보드·탭 ---------- */
 function refresh() {
+  syncNet();
   const met = REQS.filter(r => isMet(r.id)).length;
   $("dMet").textContent = `${met} / 15`;
   $("dMetBar").style.width = `${met / 15 * 100}%`;
@@ -544,9 +609,9 @@ function run(cmdRaw) {
   } else if (/^test-netconnection/i.test(cmd)) {
     const host = (arg(cmd, "ComputerName") || "").toLowerCase(), port = arg(cmd, "Port") || "80";
     const d = S.net.devices.find(x => x.ip === host || x.host.toLowerCase() === host);
-    const ok = !!d && d.decide !== "block" && (host !== "192.168.10.40" || !S.net.webInDmz);
+    const ok = !!d && !isBlocked(d) && aclAllows(vlanOfHost("KIM-PC"), vlanOfHost(d.host), port);
     out = `ComputerName     : ${host}\nRemotePort       : ${port}\nSourceAddress    : 192.168.10.11\nTcpTestSucceeded : ${ok ? "True" : "False"}` +
-      (!d ? "\n경고: 이름 확인 실패 또는 장치 없음" : d.decide === "block" ? "\n(공유기에서 차단된 장치)" : "");
+      (!d ? "\n경고: 이름 확인 실패 또는 장치 없음" : isBlocked(d) ? `\n(${isQuarantined(d) ? "NAC 격리 VLAN 99" : "NAC·공유기에서 차단"}된 장치)` : `\n경로: VLAN ${vlanOfHost("KIM-PC")} → VLAN ${vlanOfHost(d.host)} · ${aclHit(vlanOfHost("KIM-PC"), vlanOfHost(d.host), port)}`);
   } else {
     out = `'${cmd.split(/\s/)[0]}' 은(는) 실습에서 지원하지 않는 명령입니다. help 를 입력해 보세요.`;
   }
@@ -682,40 +747,52 @@ function syncWeb() {
   const f = S.net.portfw.find(x => x.ext === 443); if (f) f.to = webIp() + ":443";
   const d = S.net.devices.find(x => x.host === "GSJ-WEB"); if (d) d.ip = webIp();
 }
-const visibleDevices = () => S.net.devices.filter(d => d.decide !== "block");
-const guestLaptop = () => S.net.guestIso ? null : { ip: "192.168.10.88", mac: "F4:5C:89:AB:88:01", host: "GUEST-LAPTOP", vendor: "Apple" };
+// ARP는 같은 VLAN(같은 L2) 안의 장치만 보인다
+const visibleDevices = () => S.net.devices.filter(d => !isBlocked(d) && vlanOfHost(d.host) === vlanOfHost("KIM-PC"));
+const guestLaptop = () => guestV() === vlanOfHost("KIM-PC") ? { ip: "192.168.10.88", mac: "F4:5C:89:AB:88:01", host: "GUEST-LAPTOP", vendor: "Apple" } : null;
 
 function renderTopo() {
   const n = S.net;
   const t = (x, y, s, o = {}) => `<text x="${x}" y="${y}" font-size="${o.size || 10}" ${o.bold ? 'font-weight="700"' : ""} fill="${o.fill || "var(--ink)"}" ${o.deco ? 'text-decoration="line-through"' : ""}>${esc(s)}</text>`;
   const box = (x, y, w, h, stroke) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="var(--bg)" stroke="${stroke || "var(--line)"}" stroke-width="1.5"/>`;
-  const rows = n.devices.filter(d => !(d.host === "GSJ-WEB" && n.webInDmz));
+  const quarantined = n.devices.filter(isQuarantined);
+  const rows = n.devices.filter(d => !(d.host === "GSJ-WEB" && n.webInDmz) && !isQuarantined(d)).map(d => ({ ...d, blocked: isBlocked(d) }));
   if (!n.guestIso) rows.push({ host: "GUEST-LAPTOP", ip: "192.168.10.88", truth: "guest", decide: null });
+  const nas = vlanOfHost("GSJ-NAS"), bizV = vlanOfHost("KIM-PC");
+  const aclTxt = (src, label) => { const ok = !aclAllows(src, nas, 445); return { s: `${label}→업무 NAS: ${src === nas ? "같은 VLAN" : ok ? "ACL 차단" : "ACL 허용"}`, ok }; };
   const rowY = {}; let svg = "";
   svg += `<ellipse cx="320" cy="26" rx="70" ry="18" fill="var(--soft)" stroke="var(--accent)"/>` + t(298, 30, "인터넷", { bold: 1 });
   svg += `<line x1="320" y1="44" x2="320" y2="70" stroke="var(--muted)" stroke-width="2"/>`;
-  const exposed = S.router.remote || n.upnp;
-  svg += box(210, 70, 220, 42, exposed ? "var(--bad)" : "var(--ok)") + t(220, 87, "공유기 · 방화벽", { bold: 1 }) +
-    t(220, 103, `FW ${n.firmware}${S.router.remote ? " · 원격관리 ON" : ""}${n.upnp ? " · UPnP ON" : ""}`, { size: 9, fill: exposed ? "var(--bad)" : "var(--muted)" });
+  const exposed = S.router.remote || n.upnp || n.inboundDefault !== "deny";
+  svg += box(190, 70, 260, 42, exposed ? "var(--bad)" : "var(--ok)") + t(200, 87, `공유기 · 경계 방화벽 (인바운드 기본: ${n.inboundDefault === "deny" ? "차단" : "허용"})`, { bold: 1, size: 9.5 }) +
+    t(200, 103, `FW ${n.firmware} · ACL ${n.acl.length}개 · NAC ${{ none: "없음", mac: "MAC", "8021x": "802.1X" }[n.nac.method]}${S.router.remote ? " · 원격관리 ON" : ""}${n.upnp ? " · UPnP ON" : ""}`, { size: 9, fill: exposed ? "var(--bad)" : "var(--muted)" });
   // 업무망
   svg += `<line x1="300" y1="112" x2="200" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(10, 140, 380, 30 + rows.length * 15, !n.guestIso ? "var(--bad)" : null);
-  svg += t(20, 157, "업무망 192.168.10.0/24 (FCI 범위)", { bold: 1 });
+  svg += t(20, 157, `${bizV === 10 ? "VLAN 10 업무망" : "VLAN 1 (전체 한 망)"} 192.168.10.0/24 — FCI 범위`, { bold: 1 });
   rows.forEach((d, i) => {
     const y = 175 + i * 15; rowY[d.ip] = y;
-    const bad = (d.truth === "block" && d.decide !== "block") || d.truth === "guest";
-    const blocked = d.decide === "block";
+    const blocked = d.blocked;
+    const bad = (d.truth === "block" && !blocked) || d.truth === "guest";
     svg += t(24, y, `${blocked ? "⛔" : bad ? "⚠" : "●"} ${d.host}`, { fill: blocked ? "var(--muted)" : bad ? "var(--bad)" : "var(--ink)", deco: blocked, size: 9.5 }) +
       t(190, y, d.ip + (d.truth === "guest" ? "  손님(같은 망!)" : d.host === "GSJ-WEB" ? "  공개 서버(업무망!)" : ""), { fill: bad || d.host === "GSJ-WEB" ? "var(--bad)" : "var(--muted)", size: 9 });
   });
   // DMZ
-  svg += `<line x1="350" y1="112" x2="455" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(400, 140, 110, 70, n.webInDmz ? "var(--ok)" : null);
-  svg += t(408, 157, "DMZ", { bold: 1 }) + t(408, 170, "192.168.30.0/24", { size: 9, fill: "var(--muted)" });
-  svg += n.webInDmz ? t(408, 190, "● GSJ-WEB", { size: 9.5 }) + t(408, 203, "192.168.30.10", { size: 9, fill: "var(--muted)" }) : t(408, 190, "(비어 있음)", { size: 9, fill: "var(--muted)" });
-  if (n.webInDmz) rowY["192.168.30.10"] = 190;
+  const dmzAcl = aclTxt(vlanOfHost("GSJ-WEB"), "웹");
+  svg += `<line x1="350" y1="112" x2="455" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(400, 140, 112, 84, n.webInDmz && dmzAcl.ok ? "var(--ok)" : null);
+  svg += t(408, 157, "VLAN 30 DMZ", { bold: 1 }) + t(408, 170, "192.168.30.0/24", { size: 9, fill: "var(--muted)" });
+  svg += n.webInDmz ? t(408, 188, "● GSJ-WEB", { size: 9.5 }) + t(408, 201, "192.168.30.10", { size: 9, fill: "var(--muted)" }) : t(408, 190, "(비어 있음)", { size: 9, fill: "var(--muted)" });
+  if (n.webInDmz) { rowY["192.168.30.10"] = 188; svg += t(408, 216, dmzAcl.s, { size: 8.5, fill: dmzAcl.ok ? "var(--ok)" : "var(--bad)" }); }
   // 손님망
-  svg += `<line x1="380" y1="100" x2="570" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(520, 140, 112, 70, n.guestIso ? "var(--ok)" : "var(--bad)");
-  svg += t(528, 157, "손님 Wi-Fi", { bold: 1 }) + (n.guestIso ? t(528, 172, "192.168.20.0/24", { size: 9, fill: "var(--muted)" }) + t(528, 186, "격리됨", { size: 9.5, fill: "var(--ok)" })
-    : t(528, 174, "업무망과 같은 망", { size: 9.5, fill: "var(--bad)" }) + t(528, 188, "(격리 안 됨)", { size: 9, fill: "var(--bad)" }));
+  const gAcl = aclTxt(guestV(), "손님");
+  svg += `<line x1="380" y1="100" x2="570" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(520, 140, 114, 84, n.guestIso && gAcl.ok ? "var(--ok)" : "var(--bad)");
+  svg += t(528, 157, "VLAN 20 손님 Wi-Fi", { bold: 1, size: 9.5 }) + (n.guestIso ? t(528, 172, "192.168.20.0/24", { size: 9, fill: "var(--muted)" }) + t(528, 190, "VLAN 분리됨", { size: 9.5, fill: "var(--ok)" }) +
+      t(528, 216, gAcl.s, { size: 8.5, fill: gAcl.ok ? "var(--ok)" : "var(--bad)" })
+    : t(528, 174, "업무망과 같은 VLAN", { size: 9.5, fill: "var(--bad)" }) + t(528, 188, "(분리 안 됨)", { size: 9, fill: "var(--bad)" }));
+  // 격리 VLAN (NAC)
+  if (quarantined.length) {
+    svg += box(400, 234, 234, 22 + quarantined.length * 14, "var(--warn)") + t(408, 250, "VLAN 99 격리 (NAC) — 업무망 접근 불가", { bold: 1, size: 9.5, fill: "var(--warn)" });
+    quarantined.forEach((d, i) => { svg += t(412, 266 + i * 14, `⛔ ${d.host}`, { size: 9, fill: "var(--muted)" }); });
+  }
   // 포트포워딩
   n.portfw.filter(f => f.on).forEach((f, i) => {
     const ip = f.to.split(":")[0], y = rowY[ip]; if (!y) return;
@@ -724,15 +801,20 @@ function renderTopo() {
     svg += `<polyline points="${300 + i * 14},44 ${300 + i * 14},112 ${x2},${y - 4}" fill="none" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="5 4"/>` +
       t(10, 22 + i * 13, `${f.ext}/tcp → ${ip}`, { size: 9, fill: "var(--bad)" });
   });
-  const h = Math.max(220, 150 + rows.length * 15 + 20);
+  const h = Math.max(quarantined.length ? 262 + quarantined.length * 14 : 232, 150 + rows.length * 15 + 20);
   $("topo").innerHTML = `<svg viewBox="0 0 640 ${h}" width="100%" role="img" aria-label="가상정밀 망 구성도" style="font-family:inherit">${svg}</svg>`;
 }
 
 const netMsgs = {};
 const NET_SECTIONS = {
-  dev: ["AC.L1-b.1.i", "IA.L1-b.1.v"], fw: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], admin: ["SC.L1-b.1.x", "SI.L1-b.1.xii"],
-  wifi: ["IA.L1-b.1.vi", "SC.L1-b.1.xi"], srv: ["SC.L1-b.1.xi"],
+  nac: ["AC.L1-b.1.i", "IA.L1-b.1.v", "IA.L1-b.1.vi"], fw: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], vlan: ["SC.L1-b.1.xi"],
+  acl: ["SC.L1-b.1.x", "SC.L1-b.1.xi"], admin: ["SC.L1-b.1.x", "SI.L1-b.1.xii"], wifi: ["IA.L1-b.1.vi"],
 };
+const ACL_SRC = { any: "모든 VLAN", 10: "VLAN 10 업무", 20: "VLAN 20 손님", 30: "VLAN 30 DMZ" };
+const ACL_DST = { ...ACL_SRC, internet: "인터넷" };
+const ACL_PORT = { any: "모든 포트", 443: "443 HTTPS", 445: "445 SMB(공유 폴더)", 3389: "3389 원격 데스크톱", 53: "53 DNS" };
+const opt = (map, sel) => Object.entries(map).map(([v, l]) => `<option value="${v}" ${String(sel) === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+let aclTestOut = "";
 function renderRouter() {
   const n = S.net;
   const sec = (key, title, body) => {
@@ -742,14 +824,44 @@ function renderRouter() {
       <div style="margin-top:8px"><button class="btn ghost small" data-netev="${key}">📸 증거 저장</button></div>
       <div class="msg ${netMsgs[key]?.[0] || ""}">${netMsgs[key]?.[1] || ""}</div></div>`;
   };
+  const nacState = (d) => isQuarantined(d) ? '<span class="pill warn">격리</span>' : isBlocked(d) ? '<span class="pill">차단</span>' : d.decide === "allow" ? '<span class="pill ok">허용</span>' : '<span class="pill bad">미등록·허용</span>';
   $("router").innerHTML =
-    sec("dev", "연결된 장치 (DHCP 임대 목록)", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">업무 장치는 승인, 모르는 장치는 차단하세요. 제조사·최초 접속 시점이 단서입니다.</p>
-      <div class="tbl"><table style="font-size:.82rem"><tr><th>장치</th><th>IP / MAC</th><th>제조사 · 접속</th><th>처리</th></tr>${n.devices.map((d, i) => `<tr>
+    sec("nac", "NAC · 장치 등록", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">NAC(네트워크 접근 제어)는 망에 붙는 순간 장치를 확인해 등록된 장치만 통과시킵니다. 공유기 DHCP 차단만으로는 고정 IP를 쓰면 우회됩니다.</p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+        <label>인증 방식<br><select data-nac="method">${opt({ none: "사용 안 함", mac: "MAC 주소 허용목록", "8021x": "802.1X (장치 인증서·계정)" }, n.nac.method)}</select></label>
+        <label>미등록 장치 처리<br><select data-nac="unknown">${opt({ allow: "허용", block: "차단", quarantine: "격리 VLAN 99로 보냄" }, n.nac.unknown)}</select></label></div>
+      <label class="row"><input type="checkbox" data-nac="wired" ${n.nac.wired ? "checked" : ""}> <span>유선 스위치 포트에도 적용 (빈 포트에 꽂은 장치도 인증)</span></label>
+      ${n.nac.method === "mac" ? '<p class="msg warn" style="margin:2px 0">MAC 주소는 위조할 수 있습니다. 레벨 1 실습에서는 인정하지만 802.1X가 더 강한 장치 인증입니다.</p>' : ""}
+      <div class="tbl"><table style="font-size:.82rem"><tr><th>장치</th><th>IP / MAC</th><th>제조사 · 접속</th><th>등록</th><th>NAC</th></tr>${n.devices.map((d, i) => `<tr>
         <td style="word-break:break-all"><b>${esc(d.host)}</b>${d.desc ? `<br><span class="muted">${esc(d.desc)}</span>` : ""}</td><td class="ev" style="white-space:nowrap">${d.ip}<br><span class="muted">${d.mac}</span></td>
         <td>${esc(d.vendor)}<br><span class="muted">${esc(d.seen)}</span></td>
-        <td><select data-dev="${i}"><option value="">-</option><option value="allow" ${d.decide === "allow" ? "selected" : ""}>승인</option><option value="block" ${d.decide === "block" ? "selected" : ""}>차단</option></select></td></tr>`).join("")}</table></div>`) +
-    sec("fw", "포트 포워딩 · UPnP", `${n.portfw.map((f, i) => `<label class="row"><input type="checkbox" data-pf="${i}" ${f.on ? "checked" : ""}> <span><b>${f.ext}/tcp</b> → ${f.to} <span class="muted">${esc(f.desc)}</span></span></label>`).join("")}
-      <label class="row"><input type="checkbox" data-nset="upnp" ${n.upnp ? "checked" : ""}> <span>UPnP 사용 (내부 장치가 스스로 포트를 열 수 있음)</span></label>`) +
+        <td><select data-dev="${i}"><option value="">미등록</option><option value="allow" ${d.decide === "allow" ? "selected" : ""}>승인</option><option value="block" ${d.decide === "block" ? "selected" : ""}>차단</option></select></td>
+        <td style="white-space:nowrap">${nacState(d)}</td></tr>`).join("")}</table></div>`) +
+    sec("fw", "경계 방화벽 (인터넷 ↔ 내부)", `<div>외부→내부 <b>기본 정책</b> <select data-nset="inboundDefault">${opt({ allow: "허용", deny: "차단 (명시한 규칙만 허용)" }, n.inboundDefault)}</select></div>
+      <p class="muted" style="margin:8px 0 2px;font-size:.85rem">인바운드 허용 규칙 (포트 포워딩)</p>
+      ${n.portfw.map((f, i) => `<label class="row"><input type="checkbox" data-pf="${i}" ${f.on ? "checked" : ""}> <span><b>${f.ext}/tcp</b> → ${f.to} <span class="muted">${esc(f.desc)}</span></span></label>`).join("")}
+      <label class="row"><input type="checkbox" data-nset="upnp" ${n.upnp ? "checked" : ""}> <span>UPnP 사용 (내부 장치가 스스로 인바운드 포트를 열 수 있음)</span></label>
+      <p class="muted" style="margin:6px 0 0;font-size:.85rem">아웃바운드(내부→인터넷) 통제는 아래 ACL에서 목적지 '인터넷'으로 설정합니다.</p>`) +
+    sec("vlan", "VLAN · 스위치 포트", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">8포트 관리형 스위치입니다. 장치가 연결된 포트를 VLAN에 배정하세요. 한 포트로 여러 VLAN을 실어 나르려면 트렁크로 설정합니다.</p>
+      <div class="tbl"><table style="font-size:.82rem"><tr><th>포트</th><th>연결 장치</th><th>모드</th><th>VLAN</th></tr>${n.ports.map((p, i) => `<tr><td>${p.n}</td><td>${esc(p.dev)}</td>
+        <td><select data-pmode="${i}">${opt({ access: "access", trunk: "trunk" }, p.mode)}</select></td>
+        <td>${p.mode === "trunk" ? '<span class="muted">모든 VLAN 태그 전달</span>' : `<select data-pvlan="${i}">${opt({ 1: "1 기본", 10: "10 업무", 20: "20 손님", 30: "30 DMZ" }, p.vlan)}</select>`}</td></tr>`).join("")}</table></div>
+      <div style="margin-top:6px">SSID → VLAN: GSJ-Office <select data-ssid="office">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.office)}</select>
+        GSJ-Guest <select data-ssid="guest">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.guest)}</select>
+        ${AP().mode !== "trunk" ? `<span class="pill warn">AP 포트가 access라 모든 SSID가 VLAN ${AP().vlan}로 감</span>` : ""}</div>`) +
+    sec("acl", "ACL · 트래픽 정책 (VLAN 간 · 아웃바운드)", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">위에서부터 <b>처음 일치하는 규칙</b>이 적용됩니다. 같은 VLAN 안의 통신에는 ACL이 적용되지 않습니다.</p>
+      <div class="tbl"><table style="font-size:.82rem"><tr><th>#</th><th>출발</th><th>목적지</th><th>포트</th><th>동작</th><th></th></tr>
+        ${n.acl.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(ACL_SRC[r.src])}</td><td>${esc(ACL_DST[r.dst])}</td><td>${esc(ACL_PORT[r.port])}</td>
+          <td>${r.act === "allow" ? '<span class="pill ok">허용</span>' : '<span class="pill bad">차단</span>'}</td>
+          <td style="white-space:nowrap"><button class="btn ghost small" data-aclup="${i}" ${i ? "" : "disabled"}>↑</button> <button class="btn ghost small" data-acldel="${i}">✕</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">규칙 없음</td></tr>'}
+        <tr><td>*</td><td colspan="3">일치하는 규칙이 없을 때 (기본 동작)</td><td colspan="2"><select data-nset="aclDefault">${opt({ allow: "허용", deny: "차단" }, n.aclDefault)}</select></td></tr></table></div>
+      <div style="margin-top:6px">새 규칙: <select id="aSrc">${opt(ACL_SRC, "20")}</select> → <select id="aDst">${opt(ACL_DST, "10")}</select>
+        <select id="aPort">${opt(ACL_PORT, "any")}</select> <select id="aAct">${opt({ deny: "차단", allow: "허용" }, "deny")}</select>
+        <button class="btn small" data-nact="acladd">추가</button></div>
+      <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--line)">정책 시험: <select id="qSrc">${opt({ 10: "VLAN 10 업무", 20: "VLAN 20 손님", 30: "VLAN 30 DMZ" }, "20")}</select> →
+        <select id="qDst">${opt({ 10: "VLAN 10 업무", 20: "VLAN 20 손님", 30: "VLAN 30 DMZ", internet: "인터넷" }, "10")}</select>
+        <select id="qPort">${opt({ 443: "443", 445: "445", 3389: "3389", 53: "53" }, "445")}</select> <button class="btn ghost small" data-nact="acltest">시험</button>
+        <div class="ev" style="margin-top:4px">${esc(aclTestOut)}</div></div>`) +
     sec("admin", "공유기 관리", `<label class="row"><input type="checkbox" data-nset="remote" ${S.router.remote ? "checked" : ""}> <span>인터넷에서 관리 페이지 접속 허용 (8443)</span></label>
       <label class="row"><input type="checkbox" data-nset="log" ${n.log ? "checked" : ""}> <span>트래픽·차단 로그 기록 및 관리자 메일 알림</span></label>
       <div style="margin:4px 0">관리자 암호: ${S.router.defaultPw ? '<span class="pill bad">기본값 admin</span>' : '<span class="pill ok">변경됨</span>'}
@@ -759,10 +871,7 @@ function renderRouter() {
     sec("wifi", "Wi-Fi", `<div>업무 SSID <b>GSJ-Office</b> 보안 방식 <select data-nset="wifiSec">${["WEP", "WPA/WPA2 혼합 (TKIP)", "WPA2-AES", "WPA3-Personal"].map(o => `<option ${o === n.wifiSec ? "selected" : ""}>${o}</option>`).join("")}</select></div>
       <div style="margin:4px 0">업무 Wi-Fi 암호: ${n.wifiPwChanged ? '<span class="pill ok">변경됨</span>' : '<span class="pill warn">2025-03 이후 그대로 (퇴사자도 알고 있음)</span>'}
         <input type="password" id="wpw" placeholder="새 암호 (12자 이상)"> <button class="btn small" data-nact="wpw">변경</button></div>
-      <label class="row"><input type="checkbox" data-nset="guestIso" ${n.guestIso ? "checked" : ""}> <span>손님 SSID <b>GSJ-Guest</b>를 별도 대역(192.168.20.0/24)으로 격리, 업무망 접근 차단</span></label>`) +
-    sec("srv", "서버 배치", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">인터넷에 공개되는 회사 소개 웹서버(GSJ-WEB)의 위치</p>
-      <label class="row"><input type="radio" name="srv" data-srv="lan" ${!n.webInDmz ? "checked" : ""}> <span>업무망 192.168.10.40</span></label>
-      <label class="row"><input type="radio" name="srv" data-srv="dmz" ${n.webInDmz ? "checked" : ""}> <span>DMZ 192.168.30.10 (업무망으로 가는 연결 차단)</span></label>`);
+      <p class="muted" style="margin:6px 0 0;font-size:.85rem">손님 SSID 분리는 'VLAN · 스위치 포트'에서 설정합니다.</p>`);
 }
 function renderNet() { renderTopo(); renderRouter(); }
 
@@ -771,11 +880,13 @@ $("router").addEventListener("change", e => {
   if (el.dataset.dev !== undefined) n.devices[+el.dataset.dev].decide = el.value || null;
   else if (el.dataset.pf !== undefined) n.portfw[+el.dataset.pf].on = el.checked;
   else if (el.dataset.nset === "remote") S.router.remote = el.checked;
-  else if (el.dataset.nset === "wifiSec") n.wifiSec = el.value;
-  else if (el.dataset.nset) n[el.dataset.nset] = el.checked;
-  else if (el.dataset.srv) { n.webInDmz = el.dataset.srv === "dmz"; syncWeb(); }
+  else if (el.dataset.nset) n[el.dataset.nset] = el.type === "checkbox" ? el.checked : el.value;
+  else if (el.dataset.nac) n.nac[el.dataset.nac] = el.type === "checkbox" ? el.checked : el.value;
+  else if (el.dataset.pmode !== undefined) n.ports[+el.dataset.pmode].mode = el.value;
+  else if (el.dataset.pvlan !== undefined) n.ports[+el.dataset.pvlan].vlan = +el.value;
+  else if (el.dataset.ssid) n.ssid[el.dataset.ssid] = +el.value;
   else return;
-  save(); refresh();
+  syncNet(); save(); refresh();
 });
 $("router").addEventListener("click", e => {
   const t = e.target, sec = t.closest("[data-sec]"); if (!sec) return;
@@ -785,7 +896,21 @@ $("router").addEventListener("click", e => {
     if ($("wpw").value.length < 12) msg("bad", "12자 이상으로 설정하세요.");
     else { S.net.wifiPwChanged = true; msg("ok", "Wi-Fi 암호 변경 완료. 저장된 암호로 붙던 장치는 더 이상 접속할 수 없습니다. 직원 장치에 새 암호를 입력하세요."); }
   } else if (t.dataset.nact === "fwup") { S.net.firmware = "1.2.3"; msg("ok", "펌웨어 1.2.3 설치, 공유기 재시작 완료"); }
-  else if (t.dataset.netev) {
+  else if (t.dataset.nact === "acladd") {
+    const r = { src: $("aSrc").value, dst: $("aDst").value, port: $("aPort").value, act: $("aAct").value };
+    if (r.src !== "any" && r.src === r.dst) msg("warn", "같은 VLAN 안의 통신에는 ACL이 적용되지 않습니다.");
+    else if (S.net.acl.some(x => x.src === r.src && x.dst === r.dst && x.port === r.port)) msg("warn", "같은 조건의 규칙이 이미 있습니다.");
+    else {
+      S.net.acl.push(r);
+      const shadow = S.net.acl.slice(0, -1).findIndex(x => (x.src === "any" || x.src === r.src) && (x.dst === "any" || x.dst === r.dst) && (x.port === "any" || x.port === r.port));
+      msg(shadow >= 0 ? "warn" : "ok", shadow >= 0 ? `추가했지만 위의 규칙 #${shadow + 1}이 먼저 일치해 이 규칙은 적용되지 않습니다. ↑로 순서를 올리세요.` : "규칙 추가");
+    }
+  } else if (t.dataset.aclup !== undefined) { const i = +t.dataset.aclup, a = S.net.acl; [a[i - 1], a[i]] = [a[i], a[i - 1]]; msg("ok", `규칙 #${i + 1}을 위로 이동`); }
+  else if (t.dataset.acldel !== undefined) { S.net.acl.splice(+t.dataset.acldel, 1); msg("ok", "규칙 삭제"); }
+  else if (t.dataset.nact === "acltest") {
+    const s = $("qSrc").value, d = $("qDst").value, p = $("qPort").value;
+    aclTestOut = `${ACL_SRC[s]} → ${ACL_DST[d]} :${p}  ⇒  ${aclAllows(s, d, p) ? "허용" : "차단"}  (${aclHit(s, d, p)})`;
+  } else if (t.dataset.netev) {
     const reqs = NET_SECTIONS[key];
     addEvidence(`공유기_${sec.querySelector("h3").firstChild.textContent.trim().replace(/[\s·()]+/g, "_")}_${today()}.png`, reqs, "공유기 화면 캡처");
     const bad = reqs.filter(r => !isMet(r));
@@ -802,18 +927,34 @@ document.querySelector("#p-net").addEventListener("click", e => {
     const open = n.portfw.filter(f => f.on).map(f => `  ${String(f.ext).padEnd(5)}/tcp  → ${f.to.padEnd(19)} ${f.desc}${f.ext === 443 ? (n.webInDmz ? "  (공개 서비스·DMZ: 정상)" : "  ⚠ 업무망 서버를 공개 중") : "  ⚠ 공개하면 안 됨"}`);
     if (S.router.remote) open.push("  8443 /tcp  → 공유기 관리 페이지        ⚠ 관리 화면 인터넷 노출");
     const esp = n.devices.find(d => d.host === "ESP_3C21A9");
-    if (n.upnp && esp.decide !== "block") open.push("  49152/tcp  → 192.168.10.61 (UPnP 자동)  ⚠ 미확인 IoT 장치가 스스로 연 포트");
+    if (n.upnp && !isBlocked(esp)) open.push("  49152/tcp  → 192.168.10.61 (UPnP 자동)  ⚠ 미확인 IoT 장치가 스스로 연 포트");
+    if (n.inboundDefault !== "deny") open.push("  135,139,445/tcp → 내부 장치 직접 응답      ⚠ 인바운드 기본 정책 '허용'");
     netOut([`외부(인터넷)에서 회사 공인 IP 203.0.113.57 포트 스캔 — ${new Date().toLocaleTimeString("ko-KR")}`, "", "열린 포트:", ...(open.length ? open : ["  (없음)"]), "",
-      "나머지 TCP 포트: 응답 없음(차단)", open.some(l => l.includes("⚠")) ? "결과: ⚠ 표시 포트를 닫거나 원인을 조치하세요." : "결과: 공개 의도에 맞는 포트만 열려 있습니다."]);
+      n.inboundDefault === "deny" ? "나머지 TCP 포트: 응답 없음(기본 차단)" : "나머지 TCP 포트: 일부 응답(기본 허용)",
+      open.some(l => l.includes("⚠")) ? "결과: ⚠ 표시 포트를 닫거나 원인을 조치하세요." : "결과: 공개 의도에 맞는 포트만 열려 있습니다."]);
     lastTool = { reqs: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], name: "외부포트스캔" };
   } else if (a === "t-guest") {
-    netOut(["손님 Wi-Fi(GSJ-Guest)에 연결한 노트북에서:", "PS> Test-NetConnection -ComputerName 192.168.10.20 -Port 445", "",
-      n.guestIso ? "TcpTestSucceeded : False\n경고: TCP connect to 192.168.10.20:445 failed\n결과: 격리 정상 — 손님은 업무망 NAS에 접근할 수 없습니다." : "TcpTestSucceeded : True\n결과: ⚠ 손님이 업무망 공유 폴더(FCI)에 접근할 수 있습니다."]);
+    const g = guestV(), nas = vlanOfHost("GSJ-NAS"), ok = !aclAllows(g, nas, 445);
+    netOut([`손님 Wi-Fi(GSJ-Guest, VLAN ${g})에 연결한 노트북에서:`, "PS> Test-NetConnection -ComputerName 192.168.10.20 -Port 445", "",
+      ok ? "TcpTestSucceeded : False\n경고: TCP connect to 192.168.10.20:445 failed" : "TcpTestSucceeded : True",
+      `경로: VLAN ${g} → VLAN ${nas} · ${aclHit(g, nas, 445)}`,
+      ok ? "결과: 분리 정상 — 손님은 업무망 NAS에 접근할 수 없습니다." : "결과: ⚠ 손님이 업무망 공유 폴더(FCI)에 접근할 수 있습니다."]);
     lastTool = { reqs: ["SC.L1-b.1.xi"], name: "분리시험_손님WiFi" };
   } else if (a === "t-web") {
-    netOut([`공개 웹서버 GSJ-WEB(${webIp()})에서:`, "$ nc -zv 192.168.10.20 445", "",
-      n.webInDmz ? "nc: connect to 192.168.10.20 port 445 (tcp) failed: Connection timed out\n결과: 분리 정상 — 웹서버가 해킹돼도 업무망으로 넘어갈 수 없습니다." : "Connection to 192.168.10.20 445 port [tcp/microsoft-ds] succeeded!\n결과: ⚠ 웹서버가 뚫리면 공격자가 곧바로 NAS에 접근할 수 있습니다."]);
+    const w = vlanOfHost("GSJ-WEB"), nas = vlanOfHost("GSJ-NAS"), ok = !aclAllows(w, nas, 445);
+    netOut([`공개 웹서버 GSJ-WEB(${webIp()}, VLAN ${w})에서:`, "$ nc -zv 192.168.10.20 445", "",
+      ok ? "nc: connect to 192.168.10.20 port 445 (tcp) failed: Connection timed out" : "Connection to 192.168.10.20 445 port [tcp/microsoft-ds] succeeded!",
+      `경로: VLAN ${w} → VLAN ${nas} · ${aclHit(w, nas, 445)}`,
+      ok ? "결과: 분리 정상 — 웹서버가 해킹돼도 업무망으로 넘어갈 수 없습니다." : "결과: ⚠ 웹서버가 뚫리면 공격자가 곧바로 NAS에 접근할 수 있습니다."]);
     lastTool = { reqs: ["SC.L1-b.1.xi"], name: "분리시험_웹서버" };
+  } else if (a === "t-out") {
+    const b = vlanOfHost("KIM-PC"), smb = aclAllows(b, "internet", 445), rdp = aclAllows(b, "internet", 3389), web = aclAllows(b, "internet", 443);
+    netOut([`업무 PC KIM-PC(VLAN ${b})에서 인터넷의 시험 서버로:`, "",
+      `  443  HTTPS : ${web ? "연결됨" : "차단"}   (${aclHit(b, "internet", 443)})`,
+      `  445  SMB   : ${smb ? "연결됨 ⚠" : "차단"}   (${aclHit(b, "internet", 445)})`,
+      `  3389 RDP   : ${rdp ? "연결됨 ⚠" : "차단"}   (${aclHit(b, "internet", 3389)})`, "",
+      smb || rdp ? "결과: ⚠ 파일 공유·원격 접속 프로토콜이 인터넷으로 나갈 수 있습니다 (정보 유출·악성코드 통로)." : web ? "결과: 업무에 필요한 웹은 허용, 위험 프로토콜은 차단 — 정상" : "결과: ⚠ 웹까지 차단되어 업무 장애"]);
+    lastTool = { reqs: ["SC.L1-b.1.x"], name: "아웃바운드시험" };
   } else if (e.target.dataset.netev === "tools") {
     if (!lastTool) { $("netToolMsg").className = "msg bad"; $("netToolMsg").textContent = "먼저 점검 도구를 실행하세요."; return; }
     addEvidence(`${lastTool.name}_${today()}.txt`, lastTool.reqs, "네트워크 점검 도구");
