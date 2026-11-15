@@ -4,245 +4,346 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CMMC 레벨 1 실습</title>
-<meta name="description" content="가상 방산 협력업체의 PC와 네트워크를 직접 점검·조치하고 CMMC 레벨 1 자체평가와 SPRS 제출까지 수행하는 평가형 시뮬레이터">
+<meta name="description" content="관리자 PowerShell, 보안 게이트웨이 웹 콘솔, SSH, 점검용 터미널, 메일 관리 센터, 문서함으로 가상 방산 협력업체의 CMMC 레벨 1 자체평가를 수행하는 시뮬레이터">
 <style>
-:root{--bg:#f6f7f4;--card:#fff;--ink:#1d2320;--muted:#5d6862;--line:#dde2dc;--accent:#2f5d8a;--soft:#e4edf6;--ok:#2e7d4f;--ok-soft:#e3f2e8;--bad:#b3261e;--bad-soft:#fbe9e7;--warn:#9a5a12;--warn-soft:#f8ecd9;--term:#0f1720;--term-ink:#d7e3ee;--term-dim:#7d8b99}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111518;--card:#1a2025;--ink:#e4e9ee;--muted:#9aa6b1;--line:#2b343c;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--term:#0a0f14}}
-:root[data-theme="dark"]{--bg:#111518;--card:#1a2025;--ink:#e4e9ee;--muted:#9aa6b1;--line:#2b343c;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--term:#0a0f14}
+:root{--bg:#e9edf1;--card:#fff;--ink:#1c232b;--muted:#5f6b77;--line:#d4dbe2;--accent:#2563a8;--soft:#e3edf8;--ok:#1f7a45;--ok-soft:#e1f3e8;--bad:#b3261e;--bad-soft:#fbe9e7;--warn:#9a5a12;--warn-soft:#f8ecd9;
+  --desk:#2c3e50;--title:#f3f5f7;--ps:#012456;--ps-ink:#eef2f7;--ssh:#0c0c0c;--ssh-ink:#cccccc;--con-head:#1f2d3d;--con-nav:#26394d;--con-nav-ink:#c9d6e3;--paper:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--card:#1c2229;--ink:#e3e8ee;--muted:#98a4b0;--line:#2e3740;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--title:#232a31;--paper:#20262d;--con-head:#111a24;--con-nav:#18232f}}
+:root[data-theme="dark"]{--bg:#14181d;--card:#1c2229;--ink:#e3e8ee;--muted:#98a4b0;--line:#2e3740;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--title:#232a31;--paper:#20262d;--con-head:#111a24;--con-nav:#18232f}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
-.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
-header{background:var(--card);border-bottom:1px solid var(--line)}
-header .wrap{padding-top:18px;padding-bottom:14px}
-.crumb{font-size:.85rem;color:var(--muted)}
-h1{font-size:1.5rem;margin:4px 0 2px}
-.lead{color:var(--muted);margin:0;font-size:.93rem}
-.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
-.stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
-.stat b{font-size:1.2rem;display:block;line-height:1.3}
-.stat span{font-size:.8rem;color:var(--muted)}
-.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:6px}
-.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
-nav.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:14px}
-nav.tabs button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px 8px 0 0;padding:7px 14px;cursor:pointer;white-space:nowrap}
-nav.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--card);font-weight:700}
-main{padding:18px 0 60px}
-.panel[hidden]{display:none}
-h2{font-size:1.15rem;margin:0 0 6px}
-h3{font-size:1rem;margin:0 0 6px}
-.sub{color:var(--muted);margin:0 0 14px;font-size:.92rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.card.done{border-color:var(--ok)}
-.pill{display:inline-block;font-size:.74rem;font-weight:700;border-radius:99px;padding:1px 9px;background:var(--soft);color:var(--accent);margin-right:4px}
-.pill.ok{background:var(--ok-soft);color:var(--ok)}
-.pill.bad{background:var(--bad-soft);color:var(--bad)}
-.pill.warn{background:var(--warn-soft);color:var(--warn)}
-button.btn{font:inherit;font-size:.9rem;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--accent);color:var(--card);cursor:pointer}
-button.btn.ghost{background:transparent;color:var(--accent)}
-button.btn.small{padding:3px 10px;font-size:.82rem}
-button.btn:disabled{opacity:.45;cursor:default}
-label.row{display:flex;gap:8px;align-items:flex-start;margin:5px 0;font-size:.92rem;cursor:pointer}
-label.row input{margin-top:4px}
-select,input[type=text],input[type=password],input[type=date]{font:inherit;font-size:.9rem;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;max-width:100%}
-select:disabled,input:disabled{opacity:.75}
-.msg{margin-top:8px;font-size:.88rem}
-.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}.msg.warn{color:var(--warn)}
-.term{background:var(--term);color:var(--term-ink);border-radius:10px;font:13px/1.5 Consolas,"D2Coding",monospace;padding:12px;height:440px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
-.term .dim{color:var(--term-dim)}.term .err{color:#ff8a80}.term .okc{color:#9be7a8}.term .cmd{color:#ffe08a}
-.termin{display:flex;gap:6px;margin-top:6px;align-items:center}
-.termin span{font:13px Consolas,monospace;color:var(--muted);white-space:nowrap}
-.termin input{flex:1;font:13px Consolas,monospace;padding:7px 9px}
-.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
-.layout.net{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-@media (max-width:820px){.layout,.layout.net{grid-template-columns:1fr}}
-.hints{max-height:520px;overflow:auto}
-.hints details{border-bottom:1px solid var(--line);padding:6px 0}
-.hints summary{cursor:pointer;font-size:.9rem}
-.hints .lv{font-size:.86rem;margin:4px 0 4px 8px}
-.hints code{font:12px Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;display:inline-block;margin:2px 0;user-select:text}
+.wrap{max-width:1180px;margin:0 auto;padding:0 14px}
+/* 상단 상황판 */
+.topbar{background:var(--desk);color:#e8eef4}
+.topbar .wrap{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding-top:10px;padding-bottom:10px}
+.topbar h1{font-size:1.05rem;margin:0;margin-right:auto}
+.topbar h1 small{display:block;font-weight:400;font-size:.78rem;color:#aebdcc}
+.chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;font-size:.8rem;line-height:1.3}
+.chip b{display:block;font-size:.95rem}
+/* 작업 표시줄 */
+.dock{background:#1b2733;position:sticky;top:0;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.dock .wrap{display:flex;flex-wrap:wrap;gap:2px 4px;padding-top:6px;padding-bottom:6px}
+.dock button{font:inherit;font-size:.82rem;color:#d7e1ea;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.dock button:hover{background:rgba(255,255,255,.08)}
+.dock button[aria-pressed="true"]{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+.dock .ico{font-size:1rem}
+main{padding:16px 0 50px}
+/* 창 */
+.win{border:1px solid #9aa7b4;border-radius:8px;overflow:hidden;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.win[hidden]{display:none}
+.wt{display:flex;align-items:center;gap:8px;height:34px;padding:0 0 0 12px;background:var(--title);border-bottom:1px solid var(--line);font-size:.83rem;user-select:none}
+.wt .ti{font-weight:600;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt .ctl{display:flex;height:100%}
+.wt .ctl span{width:42px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.wt .ctl span:last-child:hover{background:#c42b1c;color:#fff}
+.wb{padding:14px 16px}
+.win.ps .wt{background:#e8e8e8;color:#222}
+.win.ps .wb,.win.ssh .wb{padding:0}
+.win.ssh .wt{background:#2b2b2b;color:#eee;border-color:#111}
+.win.ssh .wt .ctl span{color:#bbb}
+/* 터미널 */
+.term{margin:0;font:13px/1.45 Consolas,"D2Coding",monospace;padding:10px 12px;height:430px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.ps .term,.ps .tin{background:var(--ps);color:var(--ps-ink)}
+.ssh .term,.ssh .tin,.tool .term,.tool .tin{background:var(--ssh);color:var(--ssh-ink)}
+.term .dim{opacity:.65}.term .err{color:#ff8a80}.term .okc{color:#9be7a8}.term .cmd{color:#ffe08a}
+.ps .term .err{color:#ff9a8f;background:#000}
+.tin{display:flex;align-items:center;font:13px Consolas,monospace;padding:0 12px 10px}
+.tin span{white-space:nowrap;margin-right:6px}
+.tin input{flex:1;background:transparent;border:0;outline:0;color:inherit;font:inherit;padding:2px 0;caret-color:currentColor}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+.side{border-left:1px solid var(--line);padding:12px;font-size:.85rem;max-height:470px;overflow:auto;background:var(--card)}
+/* 브라우저 */
+.addr{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--title);border-bottom:1px solid var(--line);font-size:.8rem}
+.addr .bar{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:3px 12px;color:var(--muted);font-family:Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addr .nav{color:var(--muted);letter-spacing:4px}
+/* 장비 웹 콘솔 */
+.con{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:560px}
+@media (max-width:760px){.con{grid-template-columns:1fr}}
+.con-head{grid-column:1/-1;background:var(--con-head);color:#e6edf4;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 14px;font-size:.8rem}
+.con-head b{font-size:.95rem;letter-spacing:.02em}
+.con-head .u{margin-left:auto;opacity:.85}
+.con-nav{background:var(--con-nav);color:var(--con-nav-ink);padding:8px 0;font-size:.84rem}
+.con-nav .grp{padding:10px 14px 4px;font-size:.7rem;letter-spacing:.08em;opacity:.6;text-transform:uppercase}
+.con-nav button{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;color:inherit;padding:6px 14px 6px 22px;cursor:pointer;border-left:3px solid transparent}
+.con-nav button:hover{background:rgba(255,255,255,.06)}
+.con-nav button[aria-current="page"]{background:rgba(255,255,255,.1);border-left-color:#5aa3e8;color:#fff}
+.con-main{padding:14px 18px;background:var(--bg)}
+.ph{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ph h2{font-size:1.05rem;margin:0;margin-right:auto}
+.crumbs{font-size:.75rem;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:6px;margin-bottom:12px}
+.panel>h3{font-size:.85rem;margin:0;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--title)}
+.panel>.pb{padding:10px 12px}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:4px 10px;font-size:.85rem}
+.kv span:nth-child(odd){color:var(--muted)}
+.meter{height:7px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:3px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+/* 스위치 전면 */
+.sw{display:flex;gap:10px;align-items:flex-end;background:linear-gradient(#3b4652,#2a333c);border-radius:6px;padding:12px 14px;color:#cfd8e1;font-size:.72rem;overflow-x:auto}
+.sw .brand{margin-right:10px;line-height:1.3}
+.port{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:none;border:0;color:inherit;font:inherit;padding:2px}
+.port .jack{width:34px;height:28px;background:#11161b;border:2px solid #6b7783;border-radius:3px;position:relative}
+.port .jack:after{content:"";position:absolute;left:8px;right:8px;bottom:3px;height:8px;background:#2a3138}
+.port .led{width:8px;height:8px;border-radius:50%;box-shadow:0 0 4px currentColor}
+.port[aria-pressed="true"] .jack{border-color:#ffd166}
+.v1{color:#9aa5b1;background:#9aa5b1}.v10{color:#3b8ee8;background:#3b8ee8}.v20{color:#f0a030;background:#f0a030}.v30{color:#b07cf0;background:#b07cf0}.vt{color:#3fd28a;background:#3fd28a}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+/* 공통 위젯 */
 .tbl{overflow-x:auto}
-table{width:100%;border-collapse:collapse;background:var(--card);font-size:.88rem}
-th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
-th{background:var(--soft);white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:.83rem;background:var(--card)}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:var(--title);white-space:nowrap;font-weight:600}
+select,input[type=text],input[type=password],input[type=date]{font:inherit;font-size:.83rem;color:inherit;background:var(--card);border:1px solid #b6c0ca;border-radius:4px;padding:3px 6px;max-width:100%}
+select:disabled,input:disabled{background:var(--title);color:var(--muted);opacity:1}
+.btn{font:inherit;font-size:.82rem;border-radius:4px;padding:4px 12px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{padding:2px 9px;font-size:.78rem}
+.btn:disabled{opacity:.45;cursor:default}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:3px;padding:1px 7px;background:var(--soft);color:var(--accent)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.sw-toggle{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.msg{margin-top:6px;font-size:.84rem}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}.msg.warn{color:var(--warn)}
 .muted{color:var(--muted)}
-.note{border-left:3px solid var(--accent);padding:4px 0 4px 12px;color:var(--muted);font-size:.9rem;margin:10px 0}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 10px;color:var(--muted);font-size:.85rem;margin:8px 0}
 .note.warn{border-color:var(--warn)}
+.ro{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:6px 10px;font-size:.82rem;margin-bottom:12px}
+.coach{background:var(--soft);border:1px dashed var(--accent);border-radius:6px;padding:8px 10px;font-size:.8rem;margin-top:10px}
 .ev{font:12px Consolas,monospace}
+label.row{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}
+label.row input{margin-top:3px}
+/* 문서(서식) */
+.paperwrap{background:#8a949e;padding:22px;border-radius:0 0 6px 6px}
+.paper{background:var(--paper);max-width:820px;margin:0 auto;padding:34px 40px;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:.88rem}
+.paper h2{text-align:center;font-size:1.25rem;letter-spacing:.3em;margin:6px 0 18px}
+.sign{float:right;border-collapse:collapse;margin:-10px 0 10px 10px;font-size:.75rem;width:auto}
+.sign td,.sign th{border:1px solid #777;text-align:center;padding:2px 10px;min-width:58px;background:transparent}
+.sign td{height:42px}
+.paper table.form td,.paper table.form th{border:1px solid #999}
+.paper .meta{clear:both;font-size:.8rem;color:var(--muted);margin-bottom:12px}
+.files{display:grid;grid-template-columns:230px minmax(0,1fr)}
+@media (max-width:760px){.files{grid-template-columns:1fr}}
+.flist{border-right:1px solid var(--line);padding:8px 0;font-size:.84rem;background:var(--card)}
+.flist button{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;color:inherit;padding:6px 12px;cursor:pointer}
+.flist button[aria-current="true"]{background:var(--soft)}
+/* Windows 설정·메일 */
+.settings{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:420px}
+@media (max-width:760px){.settings{grid-template-columns:1fr}}
+.settings nav{background:var(--title);padding:12px 0;font-size:.85rem}
+.settings nav div{padding:7px 18px}
+.settings nav .on{background:var(--card);border-left:3px solid var(--accent);font-weight:600}
+.settings section{padding:22px 28px}
+.settings h2{font-size:1.4rem;font-weight:600;margin:0 0 16px}
+.wu{display:flex;gap:14px;align-items:center;background:var(--title);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.wu .big{font-size:2rem}
+.toast{position:fixed;right:18px;bottom:18px;background:#1b2733;color:#fff;padding:10px 14px;border-radius:6px;font-size:.85rem;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
 .mode{display:flex;gap:10px;flex-wrap:wrap}
-.mode label{flex:1;min-width:240px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--card)}
+.mode label{flex:1;min-width:230px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer}
 .mode label:has(input:checked){border-color:var(--accent);background:var(--soft)}
-footer{color:var(--muted);font-size:.82rem;padding:20px 0 40px;border-top:1px solid var(--line)}
+footer{color:var(--muted);font-size:.78rem;padding:8px 0 30px}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <div class="crumb">CMMC 교육 › 레벨 1 실습</div>
-  <h1>CMMC 레벨 1 실습 시뮬레이터</h1>
-  <p class="lead">가상 방산 협력업체 <b>가상정밀(주)</b>의 PC와 사무실 네트워크를 직접 점검·조치하고, 증거를 모아 자체평가와 SPRS 제출까지 수행합니다. 모든 상황은 가상이며 내 PC에는 아무 영향이 없습니다.</p>
-  <div class="dash">
-    <div class="stat"><b id="dMode">평가 모드</b><span id="dModeSub">힌트 없음 · 제출 후 채점</span></div>
-    <div class="stat"><b id="dMet">비공개</b><span>실제 충족 요구사항</span><div class="bar"><i id="dMetBar"></i></div></div>
-    <div class="stat"><b id="dEv">0</b><span>수집한 증거</span></div>
-    <div class="stat"><b id="dScope">미확정</b><span>범위 정의</span></div>
-    <div class="stat"><b id="dSubmit">미제출</b><span>SPRS 제출</span></div>
-  </div>
-  <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="intro" aria-selected="true">0 안내</button>
-    <button role="tab" data-tab="scope">1 범위 정의</button>
-    <button role="tab" data-tab="term">2 PC 점검·조치</button>
-    <button role="tab" data-tab="net">3 네트워크</button>
-    <button role="tab" data-tab="ops">4 설정·문서 작업</button>
-    <button role="tab" data-tab="assess">5 자체평가</button>
-    <button role="tab" data-tab="submit">6 SPRS 제출</button>
-  </nav>
-</div></header>
+<div class="topbar"><div class="wrap">
+  <h1>가상정밀(주) 보안 점검 업무 — CMMC 레벨 1<small>교육용 시뮬레이터 · 모든 회사·계정·장비는 가상</small></h1>
+  <div class="chip"><b id="dMode">평가 모드</b><span id="dModeSub">힌트 없음</span></div>
+  <div class="chip"><b id="dMet">비공개</b>실제 충족</div>
+  <div class="chip"><b id="dEv">0</b>증거</div>
+  <div class="chip"><b id="dScope">미확정</b>범위</div>
+  <div class="chip"><b id="dSubmit">미제출</b>SPRS</div>
+</div></div>
+<nav class="dock" aria-label="작업 표시줄"><div class="wrap" id="dock">
+  <button data-app="intro"><span class="ico">📋</span>업무 지시서</button>
+  <button data-app="scope"><span class="ico">🗂️</span>범위 정의서</button>
+  <button data-app="ps"><span class="ico">⌨️</span>PowerShell</button>
+  <button data-app="web"><span class="ico">🌐</span>게이트웨이 콘솔</button>
+  <button data-app="ssh"><span class="ico">🖥️</span>SSH 터미널</button>
+  <button data-app="tool"><span class="ico">🔍</span>점검용 노트북</button>
+  <button data-app="settings"><span class="ico">⚙️</span>Windows 설정</button>
+  <button data-app="mail"><span class="ico">✉️</span>메일 관리</button>
+  <button data-app="docs"><span class="ico">📁</span>문서함</button>
+  <button data-app="assess"><span class="ico">✅</span>자체평가</button>
+  <button data-app="sprs"><span class="ico">📤</span>SPRS 제출</button>
+  <button data-app="help" id="helpBtn"><span class="ico">💡</span>학습 도우미</button>
+</div></nav>
 
 <main class="wrap">
 
-<section class="panel" id="p-intro">
-  <h2>실습 안내</h2>
-  <div class="card" style="margin-bottom:12px">
-    <h3>모드 선택</h3>
-    <div class="mode">
-      <label><input type="radio" name="mode" value="exam"> <b>평가 모드</b><br><span class="muted" style="font-size:.86rem">힌트·중간 채점·오답 위치 안내 없음. 네트워크 장비는 CLI로만 설정. SPRS 제출 후 결과 보고서와 점수 공개</span></label>
-      <label><input type="radio" name="mode" value="practice"> <b>연습 모드</b><br><span class="muted" style="font-size:.86rem">단계별 힌트(사용 시 감점), 즉시 피드백, 실시간 충족 현황, 장비 설정 화면과 CLI 모두 사용</span></label>
-    </div>
-    <p style="margin:10px 0 0"><button class="btn" id="startMode">선택한 모드로 새 시나리오 시작</button> <span class="muted" style="font-size:.85rem">진행 중인 기록은 지워지고 결함 위치가 새로 정해집니다.</span></p>
-  </div>
-  <div class="grid">
-    <div class="card"><h3>규칙 (32 CFR 170.15)</h3>
-      <ul style="margin:0;padding-left:18px;font-size:.92rem">
-        <li>보호 대상: 연방계약정보(<b>FCI</b>)</li>
-        <li>FAR 52.204-21 요구사항 <b>15개</b>, 매년 자체평가</li>
-        <li>15개 <b>모두 충족(MET)</b>해야 함</li>
-        <li>보완계획(<b>POA&amp;M) 불허</b> — 고친 뒤 제출</li>
-        <li>임원 확인서 필수, 증거 <b>6년</b> 보관</li>
-      </ul></div>
-    <div class="card"><h3>가상정밀(주) 상황</h3>
-      <ul style="margin:0;padding-left:18px;font-size:.92rem">
-        <li>직원: 김대표(kim), 이과장(lee), 최사원(choi). 박대리(park)는 10월 15일 퇴사</li>
-        <li>사무실에서 office 계정을 여럿이 함께 씀</li>
-        <li>발주 메일로 받은 납품일정(FCI)을 김대표 PC에서 작성하고 공유 폴더·USB로 주고받음</li>
-        <li>공유기 하나와 8포트 스위치에 업무 PC, NAS, 복합기, 회사 소개 웹서버, Wi-Fi AP가 연결됨</li>
-        <li>당신은 김대표 PC에 로그인한 상태 (PS C:\Users\kim)</li>
-      </ul></div>
-    <div class="card"><h3>진행 방법</h3>
-      <ol style="margin:0;padding-left:18px;font-size:.92rem">
-        <li><b>범위 정의</b>: FCI가 닿는 자산 고르기</li>
-        <li><b>PC 점검·조치</b>: PowerShell 명령을 직접 입력. <code>| Out-File 파일명</code>으로 증거 저장</li>
-        <li><b>네트워크</b>: 업무 요구사항을 보고 NAC·방화벽·VLAN·ACL·Wi-Fi를 설계해 CLI로 설정</li>
-        <li><b>설정·문서 작업</b>: 절차서·기록부 작성</li>
-        <li><b>자체평가</b>: 15개를 직접 판정</li>
-        <li><b>SPRS 제출</b>: 확인서 서명 후 제출</li>
-      </ol></div>
-  </div>
-  <p class="note warn">점검 결과는 처음부터 여러 개가 미충족입니다. 증거는 <b>조치한 뒤에</b> 다시 수집해야 유효합니다. 평가 모드에서는 미충족 상태로 확인서에 서명하면 큰 감점(허위 확인)이 있습니다.</p>
-  <p><button class="btn" data-go="scope">범위 정의부터 시작 →</button></p>
+<!-- 업무 지시서 -->
+<section class="win" data-win="intro">
+  <div class="wt"><span>📋</span><span class="ti">업무지시_CMMC_자체평가.hwp — 문서 보기</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="paperwrap"><div class="paper">
+    <table class="sign"><tr><th>담당</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td>김대표</td></tr></table>
+    <h2>업 무 지 시 서</h2>
+    <div class="meta">문서번호 가상정밀-2026-117 · 2026. 11. 15. · 수신: 보안 담당자 · 발신: 대표이사 김대표</div>
+    <p><b>제목: 국방부 계약 갱신을 위한 CMMC 레벨 1 자체평가 수행</b></p>
+    <ol>
+      <li>당사는 국방부 하도급 계약으로 <b>연방계약정보(FCI)</b>를 다루므로 CMMC 레벨 1 자체평가를 매년 수행하고 SPRS에 제출해야 함.</li>
+      <li>요구사항 15개(FAR 52.204-21)를 <b>모두 충족</b>해야 하며, 미충족 항목을 보완계획(POA&amp;M)으로 대신할 수 없음.</li>
+      <li>평가 범위를 정하고, PC·네트워크 장비·메일·문서를 점검·조치하고, <b>조치 후</b> 증거를 남길 것. 증거는 6년 보관.</li>
+      <li>제출 시 본인(확인 책임자)이 서명함. <b>사실과 다른 확인은 허위 진술 책임</b>이 따름.</li>
+    </ol>
+    <p><b>참고 — 현황</b></p>
+    <ul>
+      <li>직원: 김대표(kim), 이과장(lee), 최사원(choi). 박대리(park)는 10월 15일 퇴사.</li>
+      <li>사무실 PC에서 office 계정을 여럿이 함께 씀.</li>
+      <li>발주 메일로 받은 납품일정(FCI)을 김대표 PC에서 작성하고 NAS 공유 폴더·USB로 주고받음.</li>
+      <li>보안 게이트웨이(192.168.10.1) 1대와 8포트 스위치에 업무 PC, NAS, 복합기, 회사 소개 웹서버, Wi-Fi AP가 연결됨.</li>
+      <li>네트워크 요구: ① 회사 장비는 PC 3대·NAS·복합기·웹서버뿐 ② 손님은 GSJ-Guest Wi-Fi로 인터넷만 ③ 웹서버는 인터넷에 HTTPS 공개, 해킹돼도 회사 자료에 닿으면 안 됨 ④ 직원의 인터넷·웹서버 관리는 멈추면 안 됨 ⑤ 재택 원격접속은 VPN 도입 전까지 중단 ⑥ 네트워크에서 일어난 일을 나중에 확인할 수 있어야 함.</li>
+    </ul>
+    <p><b>작업 도구</b> — 아래 작업 표시줄: 범위 정의서 · PowerShell(김대표 PC) · 게이트웨이 콘솔(웹) · SSH 터미널(장비 관리자) · 점검용 노트북 · Windows 설정 · 메일 관리 · 문서함 · 자체평가 · SPRS 제출</p>
+    <div class="panel" style="margin-top:16px"><h3>실습 모드</h3><div class="pb">
+      <div class="mode">
+        <label><input type="radio" name="mode" value="exam"> <b>평가 모드</b><br><span class="muted" style="font-size:.82rem">힌트·중간 채점 없음. 게이트웨이 웹 콘솔은 읽기 전용(monitor), 설정은 SSH로만. 제출 후 결과 보고서</span></label>
+        <label><input type="radio" name="mode" value="practice"> <b>연습 모드</b><br><span class="muted" style="font-size:.82rem">학습 도우미(단계별 힌트, 사용 시 감점), 즉시 피드백, 웹 콘솔 관리자 권한</span></label>
+      </div>
+      <p style="margin:10px 0 0"><button class="btn" id="startMode">선택한 모드로 새 시나리오 시작</button> <span class="muted" style="font-size:.8rem">진행 기록이 지워지고 결함 위치가 새로 정해집니다.</span></p>
+    </div></div>
+  </div></div>
 </section>
 
-<section class="panel" id="p-scope" hidden>
-  <h2>1. 범위 정의</h2>
-  <p class="sub">FCI를 처리·저장·전송하는 자산만 평가 범위에 넣습니다. 범위에 포함할 자산을 모두 고르세요.</p>
-  <div class="card" id="scopeList"></div>
-  <p><button class="btn" id="scopeCheck">범위 확정</button></p>
-  <div id="scopeMsg"></div>
+<!-- 범위 정의서 -->
+<section class="win" data-win="scope" hidden>
+  <div class="wt"><span>🗂️</span><span class="ti">CMMC_평가범위정의서.hwp — 문서 편집</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="paperwrap"><div class="paper">
+    <table class="sign"><tr><th>담당</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table>
+    <h2>평 가 범 위 정 의 서</h2>
+    <div class="meta">CMMC 레벨 1 · FCI를 처리·저장·전송하는 자산만 평가 범위에 포함</div>
+    <div class="tbl"><table class="form" id="scopeList"></table></div>
+    <p style="text-align:right;margin-top:12px"><button class="btn" id="scopeCheck">범위 확정</button></p>
+    <div id="scopeMsg"></div>
+  </div></div>
 </section>
 
-<section class="panel" id="p-term" hidden>
-  <h2>2. PC 점검·조치 (가상 PowerShell)</h2>
-  <p class="sub">명령을 직접 입력하세요. <code>help</code>로 지원 명령 목록을 볼 수 있습니다. ↑↓로 이전 명령을 불러옵니다.</p>
-  <div class="layout">
-    <div>
-      <pre class="term" id="term" aria-live="polite"></pre>
-      <form class="termin" id="termForm" autocomplete="off">
-        <span id="prompt">PS C:\Users\kim&gt;</span>
-        <input id="termIn" aria-label="PowerShell 명령" spellcheck="false">
-        <button class="btn small">실행</button>
-      </form>
-    </div>
-    <div class="card hints" id="hints"></div>
+<!-- PowerShell -->
+<section class="win ps" data-win="ps" hidden>
+  <div class="wt"><span>⌨️</span><span class="ti" id="psTitle">관리자: Windows PowerShell — KIM-PC</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <pre class="term" id="term" aria-live="polite"></pre>
+    <form class="tin" id="termForm" autocomplete="off"><span id="prompt">PS C:\Users\kim&gt;</span><input id="termIn" aria-label="PowerShell 명령" spellcheck="false"></form>
   </div>
 </section>
 
-<section class="panel" id="p-net" hidden>
-  <h2>3. 네트워크</h2>
-  <p class="sub">가상정밀(주)의 공유기(방화벽·라우터)와 8포트 관리형 스위치입니다. 아래 업무 요구사항을 만족하면서 CMMC 레벨 1을 충족하도록 망을 설계하고 설정하세요.</p>
-  <div class="card" style="margin-bottom:12px"><h3>업무 요구사항 (김대표 지시)</h3>
-    <ol style="margin:0;padding-left:20px;font-size:.92rem">
-      <li>회사 장비는 업무 PC 3대, NAS, 복합기, 회사 소개 웹서버뿐이다. 그 밖의 장치는 회사 장비가 아니다.</li>
-      <li>직원 노트북·휴대폰은 GSJ-Office Wi-Fi로 업무를 본다. 손님은 GSJ-Guest Wi-Fi로 <b>인터넷만</b> 쓴다.</li>
-      <li>회사 소개 웹서버는 인터넷에 HTTPS로 공개해야 한다. 웹서버가 해킹당해도 회사 자료에 닿으면 안 된다.</li>
-      <li>직원은 인터넷(웹)과 웹서버 관리(HTTPS)를 써야 한다. 업무가 멈추면 안 된다.</li>
-      <li>재택 원격접속은 승인된 VPN을 들이기 전까지 중단한다.</li>
-      <li>네트워크에서 무슨 일이 있었는지 나중에 확인할 수 있어야 한다.</li>
-    </ol></div>
-  <div class="card" style="margin-bottom:12px"><h3>망 구성도</h3><div id="topo" style="max-width:860px"></div>
-    <div class="muted" style="font-size:.8rem" id="topoLegend"></div></div>
-  <div class="layout net">
-    <div>
-      <div class="card" style="margin-bottom:12px"><h3>장비 콘솔 (CLI)</h3>
-        <p class="muted" style="margin:0 0 6px;font-size:.85rem"><code>?</code> 문법 보기 · <code>show running-config</code> 현재 설정 · <code>configure terminal</code> 설정 모드</p>
-        <pre class="term" id="cli" style="height:300px"></pre>
-        <form class="termin" id="cliForm" autocomplete="off">
-          <span id="cliPrompt">GSJ-GW#</span>
-          <input id="cliIn" aria-label="장비 CLI 명령" spellcheck="false">
-          <button class="btn small">입력</button>
-        </form></div>
-      <div class="card"><h3>점검 도구</h3>
-        <p style="margin:0 0 6px"><button class="btn small" data-net="scan">🔍 외부 포트 스캔 (인터넷에서 본 우리 회사)</button></p>
-        <p style="margin:0 0 6px"><button class="btn small" data-net="t-guest">🧪 손님 Wi-Fi 노트북 → NAS 192.168.10.20:445</button></p>
-        <p style="margin:0 0 6px"><button class="btn small" data-net="t-web">🧪 공개 웹서버 → NAS 192.168.10.20:445</button></p>
-        <p style="margin:0 0 6px"><button class="btn small" data-net="t-out">🧪 업무 PC → 인터넷 443·445·3389</button></p>
-        <pre class="term" id="netOut" style="height:190px"></pre>
-        <button class="btn ghost small" data-netev="tools">📸 점검 결과를 증거로 저장</button>
-        <div class="msg" id="netToolMsg"></div></div>
-    </div>
-    <div id="router"></div>
+<!-- 게이트웨이 웹 콘솔 -->
+<section class="win" data-win="web" hidden>
+  <div class="wt"><span>🌐</span><span class="ti">GSJ-GW 보안 게이트웨이 — 웹 브라우저</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="addr"><span class="nav">← →</span><span class="bar" id="addr">🔒 https://192.168.10.1/#/dashboard</span></div>
+  <div class="con">
+    <div class="con-head"><b>GSJ-GW</b><span>보안 게이트웨이 SG-200</span><span id="conFw">펌웨어 1.0.8</span><span class="u" id="conUser"></span><button class="btn small ghost" style="color:#fff;border-color:#8fb4d8" data-cap="1">📸 화면 캡처(증거)</button></div>
+    <nav class="con-nav" id="conNav"></nav>
+    <div class="con-main" id="conMain"></div>
   </div>
 </section>
 
-<section class="panel" id="p-ops" hidden>
-  <h2>4. 설정·문서 작업</h2>
-  <p class="sub">명령으로 할 수 없는 조치입니다. 작성하고 제출한 뒤 <b>📸 증거 저장</b>을 누르세요.</p>
-  <div class="grid" id="ops"></div>
+<!-- SSH -->
+<section class="win ssh" data-win="ssh" hidden>
+  <div class="wt"><span>🖥️</span><span class="ti">admin@192.168.10.1 — SSH</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <pre class="term" id="cli" style="height:470px"></pre>
+    <form class="tin" id="cliForm" autocomplete="off"><span id="cliPrompt">GSJ-GW#</span><input id="cliIn" aria-label="장비 CLI 명령" spellcheck="false"></form>
+  </div>
 </section>
 
-<section class="panel" id="p-assess" hidden>
-  <h2>5. 자체평가</h2>
-  <p class="sub" id="assessSub"></p>
-  <div class="tbl"><table id="assessTbl"></table></div>
-  <p id="gradeWrap"><button class="btn" id="grade">채점하기</button></p>
-  <div id="gradeMsg"></div>
+<!-- 점검용 노트북 -->
+<section class="win ssh tool" data-win="tool" hidden>
+  <div class="wt"><span>🔍</span><span class="ti">점검용 노트북 — 터미널</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="addr" style="gap:10px">접속 위치
+    <select id="toolLoc"><option value="internet">인터넷 (사무실 밖, 휴대폰 테더링)</option><option value="guest">GSJ-Guest Wi-Fi</option><option value="office">GSJ-Office Wi-Fi (업무)</option><option value="dmz">웹서버 GSJ-WEB 콘솔</option></select>
+    <span class="muted">명령: <code>nmap &lt;IP&gt;</code> · <code>nc -zv &lt;IP&gt; &lt;포트&gt;</code> · <code>ip addr</code></span>
+    <button class="btn small ghost" id="toolCap" style="margin-left:auto">📸 마지막 결과 저장(증거)</button></div>
+  <div class="wb">
+    <pre class="term" id="toolOut" style="height:400px"></pre>
+    <form class="tin" id="toolForm" autocomplete="off"><span id="toolPrompt">tester@laptop:~$</span><input id="toolIn" aria-label="점검 명령" spellcheck="false"></form>
+    <div class="msg" id="toolMsg" style="padding:0 12px 8px"></div>
+  </div>
 </section>
 
-<section class="panel" id="p-submit" hidden>
-  <h2>6. SPRS 제출</h2>
-  <p class="sub">미 국방부 SPRS에 입력하는 항목과 확인 책임자 확인서입니다.</p>
-  <div class="card">
-    <div class="grid">
-      <label>CMMC 수준<br><select id="sLevel"><option value="">선택</option><option>Level 1 (Self)</option><option>Level 2 (Self)</option><option>Level 2 (C3PAO)</option></select></label>
-      <label>CMMC 상태 일자<br><input type="date" id="sDate"></label>
-      <label>CAGE 코드 (가상)<br><input type="text" id="sCage" placeholder="영문·숫자 5자리"></label>
-      <label>평가 범위 요약<br><input type="text" id="sScope" placeholder="1단계에서 정한 범위"></label>
-    </div>
-    <label class="row" style="margin-top:10px"><input type="checkbox" id="sAffirm"> <span>(확인 책임자) 본인은 위 범위의 시스템이 CMMC 레벨 1 요구사항을 모두 충족하며 지속 준수하고 있음을 확인합니다.</span></label>
-    <p><button class="btn" id="submitBtn">SPRS에 제출</button></p>
+<!-- Windows 설정 -->
+<section class="win" data-win="settings" hidden>
+  <div class="wt"><span>⚙️</span><span class="ti">설정 — KIM-PC</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="settings">
+    <nav><div>시스템</div><div>네트워크 및 인터넷</div><div>계정</div><div>개인 정보 및 보안</div><div class="on">Windows 업데이트</div></nav>
+    <section id="settingsMain"></section>
+  </div>
+</section>
+
+<!-- 메일 관리 -->
+<section class="win" data-win="mail" hidden>
+  <div class="wt"><span>✉️</span><span class="ti">메일 관리 센터 — 웹 브라우저</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="addr"><span class="nav">← →</span><span class="bar">🔒 https://admin.mail.example/gsj/users</span></div>
+  <div class="con" style="min-height:380px">
+    <div class="con-head"><b>메일 관리 센터</b><span>가상정밀(주) · gsj.example</span><span class="u">관리자 kim@gsj.example</span><button class="btn small ghost" style="color:#fff;border-color:#8fb4d8" id="mailCap">📸 화면 캡처(증거)</button></div>
+    <nav class="con-nav"><div class="grp">관리</div><button aria-current="page">사용자</button><button>그룹</button><button>보안 정책</button><button>감사 로그</button></nav>
+    <div class="con-main" id="mailMain"></div>
+  </div>
+</section>
+
+<!-- 문서함 -->
+<section class="win" data-win="docs" hidden>
+  <div class="wt"><span>📁</span><span class="ti">문서함 — \\GSJ-NAS\보안문서</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="files">
+    <div class="flist" id="docList"></div>
+    <div class="paperwrap" style="border-radius:0"><div class="paper" id="docPaper"></div></div>
+  </div>
+</section>
+
+<!-- 자체평가 -->
+<section class="win" data-win="assess" hidden>
+  <div class="wt"><span>✅</span><span class="ti">CMMC_자체평가결과표.hwp — 문서 편집</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="paperwrap"><div class="paper" style="max-width:960px">
+    <table class="sign"><tr><th>평가자</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table>
+    <h2>자 체 평 가 결 과 표</h2>
+    <div class="meta" id="assessSub"></div>
+    <div class="tbl"><table class="form" id="assessTbl"></table></div>
+    <p id="gradeWrap" style="text-align:right;margin-top:10px"><button class="btn" id="grade">채점하기 (연습)</button></p>
+    <div id="gradeMsg"></div>
+  </div></div>
+</section>
+
+<!-- SPRS -->
+<section class="win" data-win="sprs" hidden>
+  <div class="wt"><span>📤</span><span class="ti">SPRS 제출 (교육용 모의) — 웹 브라우저</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="addr"><span class="nav">← →</span><span class="bar">🔒 https://sprs-training.example/cmmc/level1/new</span></div>
+  <div style="background:var(--con-head);color:#fff;padding:10px 16px;font-size:.9rem"><b>SPRS 제출 — 교육용 모의 양식</b> <span style="opacity:.75">· 실제 시스템과 무관</span></div>
+  <div class="wb" style="max-width:820px">
+    <div class="panel"><h3>CMMC 자체평가 등록</h3><div class="pb">
+      <div class="grid">
+        <label>CMMC 수준<br><select id="sLevel"><option value="">선택</option><option>Level 1 (Self)</option><option>Level 2 (Self)</option><option>Level 2 (C3PAO)</option></select></label>
+        <label>CMMC 상태 일자<br><input type="date" id="sDate"></label>
+        <label>CAGE 코드 (가상)<br><input type="text" id="sCage" placeholder="영문·숫자 5자리"></label>
+        <label>평가 범위 요약<br><input type="text" id="sScope" placeholder="범위 정의서 요약"></label>
+      </div></div></div>
+    <div class="panel"><h3>확인 책임자 확인 (Affirmation)</h3><div class="pb">
+      <label class="row"><input type="checkbox" id="sAffirm"> <span>본인은 위 범위의 시스템이 CMMC 레벨 1 요구사항을 모두 충족하며 지속 준수하고 있음을 확인합니다. — 확인 책임자 김대표</span></label>
+      <p style="text-align:right;margin:8px 0 0"><button class="btn" id="submitBtn">제출</button></p>
+    </div></div>
     <div id="submitMsg"></div>
   </div>
 </section>
 
+<!-- 학습 도우미 -->
+<section class="win" data-win="help" hidden>
+  <div class="wt"><span>💡</span><span class="ti">학습 도우미 (연습 모드)</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb" id="hints"></div>
+</section>
+
 </main>
-<footer><div class="wrap">교육용 시뮬레이터 · 모든 회사·계정·장비는 가상 · 근거: 32 CFR 170.15, FAR 52.204-21, NIST SP 800-171 · <a href="https://github.com/kongsu02-hue/cmmc">GitHub 저장소</a></div></footer>
+<footer><div class="wrap">교육용 시뮬레이터 · 근거: 32 CFR 170.15, FAR 52.204-21, NIST SP 800-171 · 화면은 일반적인 장비·도구 형태를 본뜬 가상 화면 · <a href="https://github.com/kongsu02-hue/cmmc">GitHub 저장소</a></div></footer>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 "use strict";
-const KEY = "cmmc-l1-sim-v4";
+const KEY = "cmmc-l1-sim-v5";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today = () => new Date().toISOString().slice(0, 10);
 const shuffle = (n) => { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+let toastT; const toast = (m) => { $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), 1800); };
 
 /* ---------- 시나리오 ---------- */
 function newState(mode = "exam") {
@@ -259,10 +360,16 @@ function newState(mode = "exam") {
       office: { enabled: true, admin: false, owner: "사무실" },
     },
     minpw: r() ? 0 : 4,
-    rdp: r() ? 0 : 1,               // fDenyTSConnections: 0=허용, 1=차단
+    rdp: r() ? 0 : 1,
     shares: ["ADMIN$", "C$", "IPC$", "외부공유"],
     fw: { Domain: true, Private: r(), Public: false },
     router: { remote: true, defaultPw: true },
+    mail: {
+      kim: { name: "김대표", active: true, mfa: r() ? "off" : "recommended", last: "오늘 07:58" },
+      lee: { name: "이과장", active: true, mfa: "off", last: "오늘 08:21" },
+      choi: { name: "최사원", active: true, mfa: "off", last: "오늘 08:44" },
+      park: { name: "박대리", active: true, mfa: "off", last: "11월 13일 23:41 (해외 IP)" },
+    },
     net: {
       devices: [
         { ip: "192.168.10.11", mac: "3C:52:82:1A:0B:11", host: "KIM-PC", vendor: "Dell", seen: "오늘 08:01", truth: "allow" },
@@ -280,42 +387,24 @@ function newState(mode = "exam") {
         { ext: 8080, to: "192.168.10.20:80", desc: "NAS 웹 관리 화면", on: r() },
         { ext: 443, to: "192.168.10.40:443", desc: "회사 소개 웹서버", on: true },
       ],
-      upnp: true,
-      log: r(),
-      firmware: "1.0.8",
-      wifiSec: "WPA/WPA2 혼합 (TKIP)",
-      wifiPwChanged: false,
-      guestIso: false,
+      upnp: true, log: r(), firmware: "1.0.8",
+      wifiSec: "WPA/WPA2 혼합 (TKIP)", wifiPwChanged: false, guestIso: false,
       inboundDefault: r() ? "allow" : "deny",
       nac: { method: "none", unknown: "allow", wired: false },
       ports: [
         { n: 1, dev: "KIM-PC" }, { n: 2, dev: "LEE-PC" }, { n: 3, dev: "CHOI-PC" }, { n: 4, dev: "GSJ-NAS" },
-        { n: 5, dev: "HP-M428" }, { n: 6, dev: "GSJ-WEB" }, { n: 7, dev: "Wi-Fi AP" }, { n: 8, dev: "공유기 업링크" },
+        { n: 5, dev: "HP-M428" }, { n: 6, dev: "GSJ-WEB" }, { n: 7, dev: "Wi-Fi AP" }, { n: 8, dev: "게이트웨이 업링크" },
       ].map(p => ({ ...p, mode: p.n === 8 ? "trunk" : "access", vlan: 1 })),
       ssid: { office: 1, guest: 1 },
-      acl: [],
-      aclDefault: "allow",
+      acl: [], aclDefault: "allow",
     },
     winUpdate: false,
     pendingApps: 7 + Math.floor(Math.random() * 6),
-    rtp: r(),
-    sigUpdated: false,
-    quickScan: false,
-    usbScanned: false,
-    cipherE: false,
-    mediaLog: [],
-    mfa: false,
-    docs: {},
-    ans: {},          // 제출한 답 (화면에 다시 보여 주기 위해 저장)
+    rtp: r(), sigUpdated: false, quickScan: false, usbScanned: false, cipherE: false,
+    mediaLog: [], docs: {}, ans: {},
     perm: { ext: shuffle(6), post: shuffle(5), access: shuffle(6), visitor: shuffle(6) },
-    evidence: [],
-    scope: null, scopePick: null,
-    assess: {},
-    hints: {},
-    pen: [],
-    submitted: null,
-    session: "kim",
-    started: Date.now(),
+    evidence: [], scope: null, scopePick: null, assess: {}, hints: {}, pen: [],
+    submitted: null, session: "kim", started: Date.now(),
   };
 }
 let S;
@@ -328,63 +417,65 @@ const pen = (pts, why) => { S.pen.push({ pts, why }); save(); };
 const DAILY = ["kim", "lee", "choi"];
 const REQS = [
   { id: "AC.L1-b.1.i", nist: "3.1.1", name: "승인된 사용자·프로세스·장치만 접근",
-    concept: "계정 목록과 네트워크에 붙은 장치를 모두 확인하세요. 회사를 떠난 사람, 쓰지 않는 기본 계정, 회사 장비가 아닌 장치가 접근할 수 있으면 안 됩니다. 공유기 DHCP 차단만으로는 고정 IP로 우회됩니다.",
-    check: s => { const p = []; if (s.users.Guest.enabled) p.push("Guest 계정 활성"); if (s.users.park && s.users.park.enabled) p.push("퇴사자 park 계정 활성");
+    concept: "PC 계정, 메일 계정, 네트워크 장치를 모두 보세요. 회사를 떠난 사람·쓰지 않는 기본 계정·회사 장비가 아닌 장치가 접근할 수 있으면 안 됩니다. DHCP 차단만으로는 고정 IP로 우회됩니다.",
+    check: s => { const p = []; if (s.users.Guest.enabled) p.push("Guest 계정 활성"); if (s.users.park && s.users.park.enabled) p.push("퇴사자 park PC 계정 활성");
+      if (s.mail.park.active) p.push("퇴사자 park 메일 계정 활성");
       s.net.devices.filter(d => d.truth === "block" && !isBlocked(d)).forEach(d => p.push(`미승인 장치 접속 중: ${d.host}`));
-      if (!nacOn()) p.push("NAC 미적용 — DHCP 차단만으로는 고정 IP 설정으로 우회 가능"); else if (S.net.nac.unknown === "allow") p.push("NAC: 미등록 장치를 기본 허용");
+      if (!nacOn()) p.push("NAC 미적용 — DHCP 차단만으로는 고정 IP로 우회 가능"); else if (s.net.nac.unknown === "allow") p.push("NAC: 미등록 장치를 기본 허용");
       return p; },
-    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"park\"", "Disable-LocalUser -Name \"Guest\"", "arp -a", "(CLI) nac mode dot1x / nac unregistered block / nac register <MAC> deny"] },
+    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"park\"", "Disable-LocalUser -Name \"Guest\"", "arp -a", "(메일 관리) 퇴사자 계정 차단", "(SSH) nac mode dot1x / nac unregistered block / nac register <MAC> deny"] },
   { id: "AC.L1-b.1.ii", nist: "3.1.2", name: "허용된 거래·기능만 수행 (권한 최소화)",
-    concept: "평소 업무에 쓰는 계정이 관리자 권한을 가지면 안 됩니다. 관리 작업용 계정을 따로 두세요. 관리자를 먼저 없애면 관리 작업을 할 수 없게 됩니다.",
+    concept: "평소 업무에 쓰는 계정이 관리자 권한을 가지면 안 됩니다. 관리 전용 계정을 따로 두세요. 관리자를 먼저 없애면 관리 작업을 할 수 없게 됩니다.",
     check: s => { const p = []; DAILY.forEach(u => { if (s.users[u] && s.users[u].admin) p.push(`업무용 계정 ${u}가 관리자`); });
       if (!Object.entries(s.users).some(([n, u]) => n.startsWith("admin") && u.enabled && u.admin)) p.push("별도 관리자 계정(admin_*) 없음"); return p; },
     hint: ["Get-LocalGroupMember -Group \"Administrators\"", "New-LocalUser -Name \"admin_kim\"", "Add-LocalGroupMember -Group \"Administrators\" -Member \"admin_kim\"", "Remove-LocalGroupMember -Group \"Administrators\" -Member \"kim\"", "runas /user:admin_kim powershell"] },
   { id: "AC.L1-b.1.iii", nist: "3.1.20", name: "외부 시스템 연결 확인·통제·제한",
-    concept: "회사 밖 시스템과 연결되는 통로(원격 데스크톱, 외부에 열린 공유 폴더, 인터넷에서 들어오는 원격접속)를 찾고, 외부 시스템 사용 규칙을 정하세요.",
+    concept: "회사 밖과 연결되는 통로(원격 데스크톱, 외부에 열린 공유 폴더, 인터넷에서 들어오는 원격접속)를 찾고, 외부 시스템 사용 규칙을 정하세요.",
     check: s => { const p = []; if (s.rdp !== 1) p.push("원격 데스크톱 허용"); if (s.shares.includes("외부공유")) p.push("불필요한 공유 폴더 '외부공유'"); if (!s.docs.extRule) p.push("외부 연결 규칙 미작성·오답");
       if (s.net.portfw.some(f => f.on && f.ext === 3389)) p.push("인터넷→PC 원격 데스크톱 포트포워딩(3389)"); return p; },
-    hint: ["(Get-ItemProperty 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server').fDenyTSConnections", "Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections -Value 1", "Get-NetTCPConnection -State Listen", "Get-SmbShare", "Remove-SmbShare -Name \"외부공유\"", "(CLI) no port-forward 3389", "(문서) 외부 시스템 연결 규칙"] },
+    hint: ["(Get-ItemProperty 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server').fDenyTSConnections", "Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections -Value 1", "Get-NetTCPConnection -State Listen", "Get-SmbShare", "Remove-SmbShare -Name \"외부공유\"", "(SSH) no port-forward 3389", "(문서함) 외부 시스템 연결 규칙"] },
   { id: "AC.L1-b.1.iv", nist: "3.1.22", name: "공개 시스템 게시 정보 통제",
     concept: "홈페이지·SNS에 FCI가 올라가지 않도록 게시 권한자와 게시 전 검토 절차를 정하세요.",
-    check: s => s.docs.posting ? [] : ["게시 승인 절차 미작성·오답"], hint: ["(문서) 공개 게시 승인 절차"] },
+    check: s => s.docs.posting ? [] : ["게시 승인 절차 미작성·오답"], hint: ["(문서함) 공개 게시 승인 절차"] },
   { id: "IA.L1-b.1.v", nist: "3.5.1", name: "사용자·프로세스·장치 식별",
     concept: "모든 계정이 한 사람에게 대응되어야 하고(공용 계정 금지), 네트워크의 모든 장치가 무엇인지 식별되어야 합니다.",
     check: s => { const p = []; if (!s.docs.acctMap) p.push("계정-사용자 대응표 미작성·오답"); if (s.users.office && s.users.office.enabled) p.push("공용 계정 office 사용 중");
       const und = s.net.devices.filter(d => !d.decide).length; if (und) p.push(`NAC에 등록 판단하지 않은 장치 ${und}대`);
       s.net.devices.filter(d => d.truth === "allow" && d.decide === "block").forEach(d => p.push(`업무 장치 ${d.host}를 잘못 차단`));
       s.net.devices.filter(d => d.truth === "block" && d.decide === "allow").forEach(d => p.push(`미확인 장치 ${d.host}를 승인`)); return p; },
-    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"office\"", "arp -a", "(CLI) show nac / nac register <MAC> permit|deny", "(문서) 계정-사용자 대응표"] },
+    hint: ["Get-LocalUser", "Disable-LocalUser -Name \"office\"", "arp -a", "(SSH) show nac / nac register <MAC> permit|deny", "(문서함) 계정-사용자 대응표"] },
   { id: "IA.L1-b.1.vi", nist: "3.5.2", name: "접근 전 인증 (사용자·장치)",
-    concept: "사용자 암호 정책, 메일 2단계 인증, Wi-Fi 암호화 방식과 암호(퇴사자가 알고 있는지), 유·무선 장치 인증을 모두 보세요.",
-    check: s => { const p = []; if (s.minpw < 8) p.push(`최소 암호 길이 ${s.minpw} (교육 기준 8 이상)`); if (!s.mfa) p.push("업무 메일 2단계 인증 미적용");
+    concept: "PC 암호 정책, 직원별 메일 2단계 인증, Wi-Fi 암호화 방식과 암호(퇴사자가 알고 있는지), 유·무선 장치 인증을 모두 보세요.",
+    check: s => { const p = []; if (s.minpw < 8) p.push(`최소 암호 길이 ${s.minpw} (교육 기준 8 이상)`);
+      const noMfa = DAILY.filter(u => s.mail[u].mfa !== "required"); if (noMfa.length) p.push(`메일 2단계 인증 필수 아님: ${noMfa.join(", ")}`);
       if (!/^WPA2-AES|^WPA3/.test(s.net.wifiSec)) p.push(`업무 Wi-Fi 보안 방식 취약: ${s.net.wifiSec}`); if (!s.net.wifiPwChanged) p.push("퇴사자 발생 후 Wi-Fi 암호 미변경");
       if (!nacOn()) p.push("장치 인증(NAC) 미적용"); if (!s.net.nac.wired) p.push("유선 스위치 포트에 NAC 미적용"); return p; },
-    hint: ["net accounts", "net accounts /minpwlen:12", "(CLI) wifi ssid GSJ-Office security wpa3 / wifi ssid GSJ-Office password <새 암호> / nac wired", "(설정) 업무 메일 2단계 인증"] },
+    hint: ["net accounts", "net accounts /minpwlen:12", "(메일 관리) 직원별 2단계 인증 '필수'", "(SSH) wifi ssid GSJ-Office security wpa3 / wifi ssid GSJ-Office password <새 암호> / nac wired"] },
   { id: "MP.L1-b.1.vii", nist: "3.8.3", name: "매체 폐기·재사용 전 완전 삭제",
     concept: "FCI가 담겼던 USB는 재사용·폐기 전에 복구할 수 없게 지우고, 처리 기록을 남기세요. 처리자와 확인자는 다른 사람이어야 합니다.",
     check: s => { const p = []; if (!s.cipherE) p.push("실습용 USB(E:) 완전 삭제 안 함"); if (!s.mediaLog.some(m => m.valid)) p.push("유효한 매체 폐기 기록 없음"); return p; },
-    hint: ["cipher /w:E:\\", "(문서) 매체 폐기 기록부"] },
+    hint: ["cipher /w:E:\\", "(문서함) 매체 폐기 기록부"] },
   { id: "PE.L1-b.1.viii", nist: "3.10.1", name: "물리적 접근을 승인자로 제한",
     concept: "FCI를 다루는 구역에 혼자 출입할 수 있는 사람을 현재 직원으로 한정하세요.",
-    check: s => s.docs.access ? [] : ["출입 권한자 명단 미작성·오답"], hint: ["(문서) 출입 권한자 명단"] },
+    check: s => s.docs.access ? [] : ["출입 권한자 명단 미작성·오답"], hint: ["(문서함) 출입 권한자 명단"] },
   { id: "PE.L1-b.1.ix", nist: "3.10.3~5", name: "방문자 동행·출입 기록·출입 장치 관리",
     concept: "방문자는 기록하고 동행하며, 퇴사자 카드와 분실 카드는 즉시 정지합니다.",
-    check: s => { const p = []; if (!s.docs.visitor) p.push("방문자 응대 절차 오답"); if (!s.docs.cards) p.push("출입카드 대장 정리 오답"); return p; }, hint: ["(문서) 방문자 응대, 출입카드 대장"] },
+    check: s => { const p = []; if (!s.docs.visitor) p.push("방문자 응대 절차 오답"); if (!s.docs.cards) p.push("출입카드 대장 정리 오답"); return p; }, hint: ["(문서함) 방문자 응대 절차, 출입카드 대장"] },
   { id: "SC.L1-b.1.x", nist: "3.13.1", name: "외부·주요 내부 경계에서 통신 감시·통제·보호",
-    concept: "PC 방화벽, 공유기 경계 방화벽(인바운드 기본 정책·불필요한 개방·UPnP·원격관리·관리자 암호), 로그, 아웃바운드 통제, 그리고 내부 경계(손님망↔업무망)를 모두 보세요.",
-    check: s => { const p = []; Object.entries(s.fw).forEach(([k, v]) => { if (!v) p.push(`PC 방화벽 ${k} 프로필 꺼짐`); }); if (s.router.remote) p.push("공유기 원격 관리 켜짐"); if (s.router.defaultPw) p.push("공유기 관리자 암호 출고 기본값");
+    concept: "PC 방화벽, 게이트웨이 경계 방화벽(인바운드 기본 정책·불필요한 개방·UPnP·원격관리·관리자 암호), 로그, 아웃바운드 통제, 내부 경계(손님망↔업무망)를 모두 보세요.",
+    check: s => { const p = []; Object.entries(s.fw).forEach(([k, v]) => { if (!v) p.push(`PC 방화벽 ${k} 프로필 꺼짐`); }); if (s.router.remote) p.push("게이트웨이 원격 관리 켜짐"); if (s.router.defaultPw) p.push("게이트웨이 관리자 암호 출고 기본값");
       if (s.net.upnp) p.push("UPnP 켜짐"); if (s.net.portfw.some(f => f.on && f.ext === 8080)) p.push("NAS 관리 화면 인터넷 노출(8080)");
-      if (!s.net.log) p.push("공유기 로그 꺼짐(감시 불가)");
+      if (!s.net.log) p.push("게이트웨이 로그 꺼짐(감시 불가)");
       if (s.net.inboundDefault !== "deny") p.push("경계 방화벽: 외부→내부 기본 정책 '허용'");
       const biz = vlanOfHost("KIM-PC");
       if (aclAllows(biz, "internet", 445) || aclAllows(biz, "internet", 3389)) p.push("아웃바운드: 업무망→인터넷 SMB(445)·RDP(3389) 미차단");
       if (!aclAllows(biz, "internet", 443)) p.push("업무망 인터넷(443)까지 차단 — 업무 장애");
       if (aclAllows(guestV(), vlanOfHost("GSJ-NAS"), 445)) p.push("내부 경계: 손님망→업무망 통제 없음"); return p; },
-    hint: ["Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True", "(CLI) firewall inbound default deny / no upnp / logging / no remote-management / admin password <암호>", "(CLI) access-list 30 deny vlan10 internet 445"] },
+    hint: ["Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction", "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True", "(SSH) firewall inbound default deny / no upnp / logging / no remote-management / admin password <암호>", "(SSH) access-list 30 deny vlan10 internet 445"] },
   { id: "SC.L1-b.1.xi", nist: "3.13.5", name: "공개 접근 구성요소 분리",
-    concept: "인터넷에 공개되는 웹서버와 손님 Wi-Fi는 업무망과 다른 VLAN에 두고, 라우터 ACL로 업무망 접근을 막으세요. VLAN만 나누면 라우터가 VLAN 사이를 그대로 연결합니다. 필요한 통신(업무→웹서버, 손님→인터넷)은 살려야 합니다.",
+    concept: "공개 웹서버와 손님 Wi-Fi는 업무망과 다른 VLAN에 두고 ACL로 업무망 접근을 막으세요. VLAN만 나누면 게이트웨이가 VLAN 사이를 그대로 연결합니다. 필요한 통신(업무→웹서버, 손님→인터넷)은 살려야 합니다.",
     check: s => { const p = [], n = s.net, nas = vlanOfHost("GSJ-NAS"), web = vlanOfHost("GSJ-WEB");
-      if (n.ports[7].mode !== "trunk") p.push("공유기 업링크가 트렁크가 아님 — VLAN 간 라우팅 불가");
+      if (n.ports[7].mode !== "trunk") p.push("게이트웨이 업링크가 트렁크가 아님 — VLAN 간 라우팅 불가");
       if (n.ports.slice(0, 5).some(pt => pt.mode !== "access" || pt.vlan !== 10) || ssidVlan("office") !== 10) p.push("업무 장치·업무 SSID가 VLAN 10에 있지 않음");
       if (!n.guestIso) p.push("손님 Wi-Fi가 VLAN 20으로 분리 안 됨");
       if (!n.webInDmz) p.push("공개 웹서버가 DMZ VLAN 30에 없음");
@@ -393,14 +484,13 @@ const REQS = [
       if (!aclAllows(vlanOfHost("KIM-PC"), web, 443)) p.push("업무망→웹서버(443) 차단 — 업무 장애");
       if (!aclAllows(guestV(), "internet", 443)) p.push("손님 인터넷(443) 차단 — 서비스 장애");
       return p; },
-    hint: ["arp -a", "Test-NetConnection -ComputerName 192.168.10.20 -Port 445", "(CLI) interface gi0/6 → switchport access vlan 30 / interface gi0/7 → switchport mode trunk / wifi ssid GSJ-Guest vlan 20", "(CLI) access-list 10 deny vlan20 vlan10 / access-list 20 deny vlan30 vlan10"] },
+    hint: ["arp -a", "(점검용 노트북, GSJ-Guest) nc -zv 192.168.10.20 445", "(SSH) interface gi0/6 → switchport access vlan 30 / interface gi0/7 → switchport mode trunk / wifi ssid GSJ-Guest vlan 20", "(SSH) access-list 10 deny vlan20 vlan10 / access-list 20 deny vlan30 vlan10"] },
   { id: "SI.L1-b.1.xii", nist: "3.14.1", name: "결함 적시 식별·보고·수정",
     concept: "운영체제, 설치 프로그램, 네트워크 장비 펌웨어까지 업데이트 대상입니다.",
-    check: s => { const p = []; if (!s.winUpdate) p.push("Windows 업데이트 미적용"); if (s.pendingApps) p.push(`프로그램 업데이트 ${s.pendingApps}개 대기`); if (s.net.firmware !== "1.2.3") p.push(`공유기 펌웨어 구버전 ${s.net.firmware}`); return p; },
-    hint: ["Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object { [datetime]$_.InstalledOn } -Descending | Select-Object -First 5 HotFixID, InstalledOn", "winget upgrade", "winget upgrade --all", "(CLI) firmware upgrade", "(설정) Windows 업데이트"] },
+    check: s => { const p = []; if (!s.winUpdate) p.push("Windows 업데이트 미적용"); if (s.pendingApps) p.push(`프로그램 업데이트 ${s.pendingApps}개 대기`); if (s.net.firmware !== "1.2.3") p.push(`게이트웨이 펌웨어 구버전 ${s.net.firmware}`); return p; },
+    hint: ["Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object { [datetime]$_.InstalledOn } -Descending | Select-Object -First 5 HotFixID, InstalledOn", "winget upgrade", "winget upgrade --all", "(SSH) firmware upgrade", "(Windows 설정) Windows 업데이트"] },
   { id: "SI.L1-b.1.xiii", nist: "3.14.2", name: "악성코드 방지",
-    concept: "백신 서비스와 실시간 보호가 켜져 있는지 확인하세요.",
-    check: s => s.rtp ? [] : ["실시간 보호 꺼짐"],
+    concept: "백신 서비스와 실시간 보호가 켜져 있는지 확인하세요.", check: s => s.rtp ? [] : ["실시간 보호 꺼짐"],
     hint: ["Get-MpComputerStatus | Select-Object AMServiceEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated, QuickScanEndTime", "Set-MpPreference -DisableRealtimeMonitoring $false"] },
   { id: "SI.L1-b.1.xiv", nist: "3.14.4", name: "악성코드 방지 수단 업데이트",
     concept: "백신 서명(정의) 업데이트 날짜를 확인하세요.", check: s => s.sigUpdated ? [] : ["백신 서명이 오래됨"], hint: ["Update-MpSignature"] },
@@ -415,13 +505,12 @@ const isMet = (id) => problems(id).length === 0;
 
 /* ---------- 네트워크 모델: VLAN · ACL · NAC ---------- */
 const AP = () => S.net.ports[6];
-const ssidVlan = (which) => AP().mode === "trunk" ? S.net.ssid[which] : AP().vlan;   // AP 포트가 access면 모든 SSID가 그 VLAN
+const ssidVlan = (which) => AP().mode === "trunk" ? S.net.ssid[which] : AP().vlan;
 const portOf = (host) => S.net.ports.find(p => p.dev === host);
 const vlanOfHost = (host) => { const p = portOf(host); return p ? (p.mode === "access" ? p.vlan : 1) : ssidVlan("office"); };
 const guestV = () => ssidVlan("guest");
 const sortAcl = () => S.net.acl.sort((a, b) => a.seq - b.seq);
 const aclMatch = (r, src, dst, port) => (r.src === "any" || r.src === src) && (r.dst === "any" || r.dst === dst) && (r.port === "any" || r.port === port);
-// ACL: 순번(seq) 순서대로 처음 일치하는 규칙 적용, 없으면 기본 동작. 같은 VLAN 안은 라우터를 거치지 않음
 function aclAllows(src, dst, port) {
   src = String(src); dst = String(dst); port = String(port);
   if (src === dst) return true;
@@ -430,7 +519,7 @@ function aclAllows(src, dst, port) {
 }
 function aclHit(src, dst, port) {
   src = String(src); dst = String(dst); port = String(port);
-  if (src === dst) return "같은 VLAN — 라우터·ACL을 거치지 않음";
+  if (src === dst) return "같은 VLAN — 게이트웨이·ACL을 거치지 않음";
   const r = S.net.acl.find(x => aclMatch(x, src, dst, port));
   return r ? `seq ${r.seq} 일치` : `일치 규칙 없음 → 기본 동작 '${S.net.aclDefault === "allow" ? "허용" : "차단"}'`;
 }
@@ -455,95 +544,88 @@ function addEvidence(file, reqIds, src) {
 const evMsg = (reqs, file) => {
   if (EX()) return ["ok", `증거 저장: ${file}`];
   const bad = reqs.filter(r => !isMet(r));
-  return bad.length ? ["warn", `저장했지만 미충족 상태의 증거입니다: ${bad.map(r => problems(r).join(", ")).join(" / ")}`] : ["ok", "충족 상태 증거 저장"];
+  return bad.length ? ["warn", `(연습) 미충족 상태의 증거입니다: ${bad.map(r => problems(r).join(", ")).join(" / ")}`] : ["ok", "충족 상태 증거 저장"];
 };
 
-/* ---------- 대시보드·탭 ---------- */
+/* ---------- 상황판·창 전환 ---------- */
+let curApp = "intro";
 function refresh() {
   syncNet();
   const met = REQS.filter(r => isMet(r.id)).length;
   $("dMode").textContent = EX() ? "평가 모드" : "연습 모드";
-  $("dModeSub").textContent = EX() ? "힌트 없음 · 제출 후 채점" : `감점 ${S.pen.reduce((a, p) => a + p.pts, 0)}점 (힌트·오답)`;
+  $("dModeSub").textContent = EX() ? "힌트 없음 · 제출 후 채점" : `감점 ${S.pen.reduce((a, p) => a + p.pts, 0)}점`;
   $("dMet").textContent = EX() && !S.submitted ? "비공개" : `${met} / 15`;
-  $("dMetBar").style.width = EX() && !S.submitted ? "0" : `${met / 15 * 100}%`;
   $("dEv").textContent = S.evidence.length;
   $("dScope").textContent = EX() ? (S.scopePick ? "확정" : "미확정") : (S.scope === true ? "완료" : "미완료");
   $("dSubmit").textContent = S.submitted ? "제출 완료" : "미제출";
+  $("helpBtn").hidden = EX();
   document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === S.mode);
-  renderHints(); renderOps(); renderNet();
+  renderHints(); renderWeb(); renderSettings(); renderMail(); renderDocs();
+  if (curApp === "assess") renderAssess();
 }
-document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
-document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
-function showTab(t) {
-  document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
-  document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + t);
-  if (t === "assess") renderAssess();
-  if (t === "term") $("termIn").focus();
+function openApp(a) {
+  if (a === "help" && EX()) a = "intro";
+  curApp = a;
+  document.querySelectorAll("[data-app]").forEach(b => b.setAttribute("aria-pressed", b.dataset.app === a));
+  document.querySelectorAll("[data-win]").forEach(w => w.hidden = w.dataset.win !== a);
+  if (a === "assess") renderAssess();
+  const focus = { ps: "termIn", ssh: "cliIn", tool: "toolIn" }[a]; if (focus) $(focus).focus();
 }
+document.querySelectorAll("[data-app]").forEach(b => b.addEventListener("click", () => openApp(b.dataset.app)));
 $("startMode").addEventListener("click", () => {
   const m = document.querySelector('input[name="mode"]:checked')?.value || "exam";
   if (!confirm(`${m === "exam" ? "평가" : "연습"} 모드로 새 시나리오를 시작할까요? 진행 기록이 지워집니다.`)) return;
   S = newState(m); save();
-  termOut.length = 0; banner(); cliOut.length = 0; cliBanner(); cli.mode = "exec"; cliPrompt();
-  $("netOut").textContent = ""; $("scopeMsg").innerHTML = ""; $("gradeMsg").innerHTML = ""; $("submitMsg").innerHTML = "";
-  for (const k in opMsgs) delete opMsgs[k]; for (const k in netMsgs) delete netMsgs[k];
-  renderScope(); refresh(); showTab("intro");
+  termOut.length = 0; banner(); cliOut.length = 0; cliBanner(); cli.mode = "exec"; cliPrompt(); toolOut.length = 0; toolBanner();
+  $("scopeMsg").innerHTML = ""; $("gradeMsg").innerHTML = ""; $("submitMsg").innerHTML = ""; $("toolMsg").textContent = "";
+  for (const k in docMsgs) delete docMsgs[k]; conMsg = ""; mailMsg = "";
+  renderScope(); refresh(); openApp("intro"); toast("새 시나리오를 시작했습니다");
 });
 
-/* ---------- 1. 범위 ---------- */
+/* ---------- 범위 정의서 ---------- */
 const ASSETS = [
-  { n: "김대표 업무 PC — 발주 메일 수신, 납품일정 작성", in: true, why: "FCI를 만들고 저장함" },
-  { n: "사무실 NAS 공유 폴더 — 납품일정 파일 공유", in: true, why: "FCI 저장" },
-  { n: "회사 메일(클라우드) — 발주처와 메일 교환", in: true, why: "FCI 전송·저장" },
-  { n: "실습용 USB — 납품일정 사본 이동", in: true, why: "FCI 저장 매체" },
-  { n: "공유기·스위치·업무 Wi-Fi", in: true, why: "FCI가 지나가는 경계·전송 장치" },
-  { n: "직원 개인 휴대폰 — 업무 메일 앱 사용", in: true, why: "메일로 FCI에 접근하므로 범위에 포함" },
-  { n: "손님용 Wi-Fi", in: false, why: "업무망과 분리되어 있으면 FCI가 지나가지 않음. 분리가 전제(SC.L1-b.1.xi)" },
-  { n: "회사 소개 웹서버 — 공개 정보만 게시", in: false, why: "FCI를 다루지 않는 공개 구성요소. 업무망과 분리(SC.L1-b.1.xi)·게시 통제(AC.L1-b.1.iv)가 전제" },
-  { n: "가공 설비 제어 PC — 네트워크 미연결, 도면만 사용", in: false, why: "FCI 없음·네트워크 분리" },
+  { n: "김대표 업무 PC", d: "발주 메일 수신, 납품일정 작성", in: true, why: "FCI를 만들고 저장함" },
+  { n: "NAS 공유 폴더", d: "납품일정 파일 공유", in: true, why: "FCI 저장" },
+  { n: "회사 메일(클라우드)", d: "발주처와 메일 교환", in: true, why: "FCI 전송·저장" },
+  { n: "실습용 USB", d: "납품일정 사본 이동", in: true, why: "FCI 저장 매체" },
+  { n: "보안 게이트웨이·스위치·업무 Wi-Fi", d: "사무실 네트워크", in: true, why: "FCI가 지나가는 경계·전송 장치" },
+  { n: "직원 개인 휴대폰", d: "업무 메일 앱 사용", in: true, why: "메일로 FCI에 접근하므로 범위에 포함" },
+  { n: "손님용 Wi-Fi", d: "방문객 인터넷", in: false, why: "업무망과 분리되어 있으면 FCI가 지나가지 않음. 분리가 전제(SC.L1-b.1.xi)" },
+  { n: "회사 소개 웹서버", d: "공개 정보만 게시", in: false, why: "FCI를 다루지 않는 공개 구성요소. 업무망 분리·게시 통제가 전제" },
+  { n: "가공 설비 제어 PC", d: "네트워크 미연결, 도면만 사용", in: false, why: "FCI 없음·네트워크 분리" },
 ];
 function renderScope() {
-  $("scopeList").innerHTML = ASSETS.map((a, i) => `<label class="row"><input type="checkbox" data-a="${i}" ${S.scopePick && S.scopePick[i] ? "checked" : ""}> <span>${esc(a.n)}</span></label>`).join("");
+  $("scopeList").innerHTML = `<tr><th>번호</th><th>자산</th><th>용도</th><th>범위 포함</th></tr>` +
+    ASSETS.map((a, i) => `<tr><td style="text-align:center">${i + 1}</td><td>${esc(a.n)}</td><td>${esc(a.d)}</td><td style="text-align:center"><input type="checkbox" data-a="${i}" ${S.scopePick && S.scopePick[i] ? "checked" : ""} aria-label="${esc(a.n)} 포함"></td></tr>`).join("");
 }
 const scopeWrong = (pick) => ASSETS.map((a, i) => ({ a, ok: a.in === !!(pick && pick[i]) })).filter(x => !x.ok);
 $("scopeCheck").addEventListener("click", () => {
   const pick = [...document.querySelectorAll("[data-a]")].map(c => c.checked);
   S.scopePick = pick;
   const wrong = scopeWrong(pick);
-  if (EX()) {
-    S.scope = !wrong.length; save(); refresh();
-    $("scopeMsg").innerHTML = `<div class="msg ok">범위를 확정했습니다 (${pick.filter(Boolean).length}개 자산). 평가 모드에서는 제출 후 채점합니다. 다시 확정하면 덮어씁니다.</div>`;
-    return;
-  }
-  if (!wrong.length) {
-    S.scope = true; save(); refresh();
-    $("scopeMsg").innerHTML = `<div class="msg ok">정확합니다. 범위: FCI를 다루는 6개 자산.</div>`;
-  } else {
+  if (EX()) { S.scope = !wrong.length; save(); refresh(); $("scopeMsg").innerHTML = `<div class="msg ok">범위를 확정했습니다 (${pick.filter(Boolean).length}개 자산). 채점은 SPRS 제출 후 결과 보고서에서 합니다.</div>`; return; }
+  if (!wrong.length) { S.scope = true; save(); refresh(); $("scopeMsg").innerHTML = `<div class="msg ok">정확합니다. FCI를 다루는 6개 자산이 범위입니다.</div>`; }
+  else {
     S.scope = false; pen(1, "범위 정의 오답"); refresh();
-    $("scopeMsg").innerHTML = `<div class="msg bad">${wrong.length}개가 틀렸습니다.</div><ul class="msg">` +
-      wrong.map(x => `<li>${esc(x.a.n)} → <b>${x.a.in ? "포함" : "제외"}</b>: ${esc(x.a.why)}</li>`).join("") + "</ul>";
+    $("scopeMsg").innerHTML = `<div class="msg bad">${wrong.length}개가 틀렸습니다.</div><ul class="msg">` + wrong.map(x => `<li>${esc(x.a.n)} → <b>${x.a.in ? "포함" : "제외"}</b>: ${esc(x.a.why)}</li>`).join("") + "</ul>";
   }
 });
 
-/* ---------- 2. 가상 PowerShell ---------- */
+/* ---------- PowerShell ---------- */
 const termOut = [];
 function print(text, cls) { termOut.push(cls ? `<span class="${cls}">${esc(text)}</span>` : esc(text)); $("term").innerHTML = termOut.join("\n"); $("term").scrollTop = 1e9; }
-function banner() {
-  print("Windows PowerShell (가상정밀 실습 환경 — 실제 PC와 무관)", "dim");
-  print("help 를 입력하면 지원 명령을 볼 수 있습니다.", "dim");
-}
+function banner() { print("Windows PowerShell\nCopyright (C) Microsoft Corporation. All rights reserved.\n\n(가상정밀 실습 환경 — 실제 PC와 무관 · help 로 지원 명령 보기)\n"); }
 const isAdminSession = () => S.users[S.session] && S.users[S.session].admin && S.users[S.session].enabled;
 function needAdmin() {
   if (isAdminSession()) return false;
   print("오류: 액세스가 거부되었습니다.", "err");
-  if (!EX()) print("  → 관리자 권한이 필요합니다. 관리자 계정이 있다면 runas 로 전환하세요.", "dim");
+  if (!EX()) print("  (연습 힌트) 관리자 권한이 필요합니다. 관리자 계정이 있다면 runas 로 전환하세요.", "dim");
   return true;
 }
 const arg = (cmd, name) => { const m = cmd.match(new RegExp(`-${name}\\s+(?:"([^"]*)"|'([^']*)'|(\\S+))`, "i")); return m ? (m[1] ?? m[2] ?? m[3]) : null; };
 const fmtTable = (rows, cols) => {
   const w = cols.map(c => Math.max(c.length, ...rows.map(r => String(r[c]).length)));
-  return [cols.map((c, i) => c.padEnd(w[i])).join(" "), cols.map((c, i) => "-".repeat(w[i])).join(" "),
-    ...rows.map(r => cols.map((c, i) => String(r[c]).padEnd(w[i])).join(" "))].join("\n");
+  return [cols.map((c, i) => c.padEnd(w[i])).join(" "), cols.map((c, i) => "-".repeat(w[i])).join(" "), ...rows.map(r => cols.map((c, i) => String(r[c]).padEnd(w[i])).join(" "))].join("\n");
 };
 const sigDate = () => S.sigUpdated ? today() + " 09:12" : "2026-08-02 06:40";
 const visibleDevices = () => S.net.devices.filter(d => !isBlocked(d) && vlanOfHost(d.host) === vlanOfHost("KIM-PC"));
@@ -556,7 +638,6 @@ function run(cmdRaw) {
   if (of) { outFile = of[1] || of[2] || of[3]; cmd = cmd.slice(0, of.index).trim(); }
   const lc = cmd.toLowerCase();
   let out = null, reqs = [];
-
   if (lc === "help" || lc === "도움말") {
     out = ["조회: Get-LocalUser, Get-LocalGroupMember -Group <그룹>, net accounts, Get-SmbShare,",
       "      (Get-ItemProperty <레지스트리 경로>).<값 이름>, Get-NetFirewallProfile, Get-NetConnectionProfile,",
@@ -591,25 +672,19 @@ function run(cmdRaw) {
   } else if (/^new-localuser/i.test(cmd)) {
     if (needAdmin()) return finish();
     const n = arg(cmd, "Name");
-    if (!n) out = "오류: -Name 이 필요합니다.";
-    else if (S.users[n]) out = `오류: 사용자 ${n}이(가) 이미 있습니다.`;
+    if (!n) out = "오류: -Name 이 필요합니다."; else if (S.users[n]) out = `오류: 사용자 ${n}이(가) 이미 있습니다.`;
     else { S.users[n] = { enabled: true, admin: false, owner: "" }; out = `암호 입력: ********\n\nName   Enabled\n----   -------\n${n} True`; }
   } else if (/^add-localgroupmember/i.test(cmd)) {
     if (needAdmin()) return finish();
     const g = (arg(cmd, "Group") || "").toLowerCase(), n = arg(cmd, "Member");
     if (!S.users[n]) out = `오류: 사용자 ${n}을(를) 찾을 수 없습니다.`;
-    else if (g === "administrators") { S.users[n].admin = true; out = ""; }
-    else if (g === "users") out = "";
-    else out = "오류: 그룹을 찾을 수 없습니다.";
+    else if (g === "administrators") { S.users[n].admin = true; out = ""; } else if (g === "users") out = ""; else out = "오류: 그룹을 찾을 수 없습니다.";
   } else if (/^remove-localgroupmember/i.test(cmd)) {
     if (needAdmin()) return finish();
     const n = arg(cmd, "Member");
     if (!S.users[n] || !S.users[n].admin) out = `오류: ${n}은(는) 그룹의 구성원이 아닙니다.`;
-    else {
-      const others = Object.entries(S.users).filter(([k, u]) => k !== n && u.admin && u.enabled);
-      if (!others.length) out = "오류(실습 안전장치): 마지막 활성 관리자 계정은 제거할 수 없습니다.";
-      else { S.users[n].admin = false; out = ""; }
-    }
+    else if (!Object.entries(S.users).some(([k, u]) => k !== n && u.admin && u.enabled)) out = "오류(실습 안전장치): 마지막 활성 관리자 계정은 제거할 수 없습니다.";
+    else { S.users[n].admin = false; out = ""; }
   } else if (/^(disable|remove)-localuser/i.test(cmd)) {
     if (needAdmin()) return finish();
     const n = arg(cmd, "Name"), rm = /^remove/i.test(cmd);
@@ -618,7 +693,7 @@ function run(cmdRaw) {
     else if (S.users[n].admin && !Object.entries(S.users).some(([k, u]) => k !== n && u.admin && u.enabled)) out = "오류(실습 안전장치): 마지막 활성 관리자 계정입니다.";
     else { if (rm && !["Administrator", "Guest"].includes(n)) delete S.users[n]; else S.users[n].enabled = false; out = ""; }
   } else if (/^net\s+accounts\s*$/i.test(cmd)) {
-    out = `강제 로그오프 시간:             사용 안 함\n최소 암호 사용 기간(일):         0\n최대 암호 사용 기간(일):         42\n최소 암호 길이:                  ${S.minpw}\n암호 기록 개수:                  없음`;
+    out = `강제 로그오프 시간:             사용 안 함\n최소 암호 사용 기간(일):         0\n최대 암호 사용 기간(일):         42\n최소 암호 길이:                  ${S.minpw}\n암호 기록 개수:                  없음\n명령을 잘 실행했습니다.`;
     reqs = ["IA.L1-b.1.vi"];
   } else if (/^net\s+accounts\s+\/minpwlen:(\d+)/i.test(cmd)) {
     if (needAdmin()) return finish();
@@ -633,9 +708,7 @@ function run(cmdRaw) {
   } else if (/^remove-smbshare/i.test(cmd)) {
     if (needAdmin()) return finish();
     const n = arg(cmd, "Name");
-    if (!S.shares.includes(n)) out = `오류: 공유 ${n}을(를) 찾을 수 없습니다.`;
-    else if (n.endsWith("$")) out = "기본 관리 공유는 실습에서 제거하지 않습니다.";
-    else { S.shares = S.shares.filter(x => x !== n); out = ""; }
+    if (!S.shares.includes(n)) out = `오류: 공유 ${n}을(를) 찾을 수 없습니다.`; else if (n.endsWith("$")) out = "기본 관리 공유는 실습에서 제거하지 않습니다."; else { S.shares = S.shares.filter(x => x !== n); out = ""; }
   } else if (/^get-netfirewallprofile/i.test(cmd)) {
     out = fmtTable(Object.entries(S.fw).map(([k, v]) => ({ Name: k, Enabled: v ? "True" : "False", DefaultInboundAction: "NotConfigured" })), ["Name", "Enabled", "DefaultInboundAction"]);
     reqs = ["SC.L1-b.1.x"];
@@ -666,14 +739,11 @@ function run(cmdRaw) {
   else if (/^start-mpscan/i.test(cmd)) {
     const t = (arg(cmd, "ScanType") || "").toLowerCase();
     if (t === "quickscan") { S.quickScan = S.sigUpdated; out = "빠른 검사 완료: 위협 0개" + (!S.sigUpdated && !EX() ? "\n(연습 힌트) 서명이 오래된 상태로 검사했습니다." : ""); }
-    else if (t === "customscan") {
-      const p = (arg(cmd, "ScanPath") || "").toUpperCase();
-      if (p.startsWith("E:")) { S.usbScanned = true; out = "E:\\ 검사 완료: 위협 1개 (EICAR 테스트 파일) → 격리됨"; } else out = "오류: 실습에서는 USB(E:\\) 검사만 지원합니다.";
-    } else out = "오류: -ScanType 값이 올바르지 않습니다.";
+    else if (t === "customscan") { const p = (arg(cmd, "ScanPath") || "").toUpperCase(); if (p.startsWith("E:")) { S.usbScanned = true; out = "E:\\ 검사 완료: 위협 1개 (EICAR 테스트 파일) → 격리됨"; } else out = "오류: 실습에서는 USB(E:\\) 검사만 지원합니다."; }
+    else out = "오류: -ScanType 값이 올바르지 않습니다.";
   } else if (/^cipher\s+\/w:(\w):?/i.test(cmd)) {
     const d = cmd.match(/\/w:(\w)/i)[1].toUpperCase();
-    if (d !== "E") out = `중지(실습 안전장치): ${d}: 는 실습용 USB가 아닙니다.`;
-    else { S.cipherE = true; out = "E:\\ 빈 공간 덮어쓰기: 0x00 ... 0xFF ... 난수 ... 완료"; }
+    if (d !== "E") out = `중지(실습 안전장치): ${d}: 는 실습용 USB가 아닙니다.`; else { S.cipherE = true; out = "E:\\ 빈 공간 덮어쓰기: 0x00 ... 0xFF ... 난수 ... 완료"; }
   } else if (/^ipconfig/i.test(cmd)) {
     out = "이더넷 어댑터 이더넷:\n   IPv4 주소 . . . . . . . . . : 192.168.10.11\n   서브넷 마스크 . . . . . . . : 255.255.255.0\n   기본 게이트웨이 . . . . . . : 192.168.10.1";
   } else if (/^(arp\s+-a|get-netneighbor)/i.test(cmd)) {
@@ -689,20 +759,17 @@ function run(cmdRaw) {
     const d = S.net.devices.find(x => x.ip === host || x.host.toLowerCase() === host);
     const ok = !!d && !isBlocked(d) && aclAllows(vlanOfHost("KIM-PC"), vlanOfHost(d.host), port);
     out = `ComputerName     : ${host}\nRemotePort       : ${port}\nSourceAddress    : 192.168.10.11\nTcpTestSucceeded : ${ok ? "True" : "False"}` +
-      (!d ? "\n경고: 이름 확인 실패" : !EX() && d ? `\n(연습 힌트) VLAN ${vlanOfHost("KIM-PC")} → VLAN ${vlanOfHost(d.host)} · ${isBlocked(d) ? "NAC 차단 장치" : aclHit(vlanOfHost("KIM-PC"), vlanOfHost(d.host), port)}` : "");
-  } else {
-    out = `'${cmd.split(/\s/)[0]}' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다. (help 로 지원 명령 확인)`;
-  }
+      (!d ? "\n경고: 이름 확인 실패" : !EX() ? `\n(연습 힌트) VLAN ${vlanOfHost("KIM-PC")} → VLAN ${vlanOfHost(d.host)} · ${isBlocked(d) ? "NAC 차단 장치" : aclHit(vlanOfHost("KIM-PC"), vlanOfHost(d.host), port)}` : "");
+  } else out = `${cmd.split(/\s/)[0]} : '${cmd.split(/\s/)[0]}' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다.`;
 
   if (out !== null && out !== "") print(out, /^오류|^중지|액세스가 거부|인식되지 않습니다/.test(out) ? "err" : null);
   if (outFile) {
-    if (reqs.length) { addEvidence(outFile, reqs, cmd); print(`증거 저장: ${outFile}`, "okc"); }
+    if (reqs.length) { addEvidence(outFile, reqs, cmd); print(`(파일 저장됨: C:\\증거\\${outFile})`, "okc"); }
     else print("Out-File: 이 명령의 출력은 증거로 쓸 조회 결과가 아닙니다.", "err");
   }
   finish();
 }
-function finish() { $("prompt").textContent = `PS C:\\Users\\${S.session}>`; save(); refresh(); }
-
+function finish() { $("prompt").textContent = `PS C:\\Users\\${S.session}>`; $("psTitle").textContent = `${S.session === "kim" ? "" : "관리자: "}Windows PowerShell — KIM-PC (${S.session})`; save(); refresh(); }
 function bindHistory(input, form, onRun) {
   const hist = []; let hi = 0;
   form.addEventListener("submit", e => { e.preventDefault(); const v = input.value; if (!v.trim()) return; hist.push(v); hi = hist.length; input.value = ""; onRun(v); });
@@ -713,146 +780,142 @@ function bindHistory(input, form, onRun) {
 }
 bindHistory($("termIn"), $("termForm"), v => { print(`PS C:\\Users\\${S.session}> ${v}`, "cmd"); run(v); });
 
-/* ---------- 힌트 (연습 모드 전용, 3단계, 사용 시 감점) ---------- */
+/* ---------- 학습 도우미 (연습 모드) ---------- */
 function renderHints() {
-  if (EX()) {
-    $("hints").innerHTML = `<h3>평가 모드</h3><p class="muted" style="font-size:.9rem">힌트가 제공되지 않습니다. 명령 문법은 <code>help</code>로 확인하세요.</p>
-      <p class="muted" style="font-size:.9rem">어떤 요구사항을 무엇으로 확인하고 고칠지 스스로 판단해야 합니다. 조치 후 <code>| Out-File</code>로 증거를 남기세요.</p>`;
-    return;
-  }
-  $("hints").innerHTML = `<h3>단계별 힌트 <span class="muted" style="font-size:.8rem;font-weight:400">한 단계 열 때마다 1점 감점</span></h3>` + REQS.map(r => {
-    const lv = S.hints[r.id] || 0;
-    const names = [...new Set(r.hint.map(h => h.startsWith("(") ? h.replace(/\).*/, ")") : h.split(/[\s|]/)[0].replace(/^\(/, "")))];
-    return `<details ${lv ? "open" : ""}><summary><b>${r.id}</b> ${esc(r.name)}</summary>
-      ${lv >= 1 ? `<div class="lv">① ${esc(r.concept)}</div>` : ""}
-      ${lv >= 2 ? `<div class="lv">② 쓸 도구: ${names.map(n => `<code>${esc(n)}</code>`).join(" ")}</div>` : ""}
-      ${lv >= 3 ? `<div class="lv">③ ${r.hint.map(h => `<code>${esc(h)}</code>`).join("<br>")}</div>` : ""}
-      ${lv < 3 ? `<button class="btn ghost small" data-hint="${r.id}">${["① 개념 보기", "② 쓸 도구 보기", "③ 명령 예시 보기"][lv]}</button>` : ""}</details>`;
-  }).join("");
+  if (EX()) { $("hints").innerHTML = ""; return; }
+  $("hints").innerHTML = `<p class="muted" style="margin-top:0">요구사항마다 힌트를 한 단계씩 열 수 있습니다. 한 단계마다 1점 감점됩니다. 명령은 직접 입력해야 합니다.</p>` +
+    `<div class="tbl"><table>${REQS.map(r => {
+      const lv = S.hints[r.id] || 0;
+      const names = [...new Set(r.hint.map(h => h.startsWith("(") ? h.replace(/\).*/, ")") : h.split(/[\s|]/)[0].replace(/^\(/, "")))];
+      return `<tr><td style="width:150px"><b>${r.id}</b><br><span class="muted">${esc(r.name)}</span><br>${isMet(r.id) ? '<span class="tag ok">충족</span>' : '<span class="tag bad">미충족</span>'}</td><td>
+        ${lv >= 1 ? `<div>① ${esc(r.concept)}</div>` : ""}
+        ${lv >= 2 ? `<div style="margin-top:4px">② 쓸 도구: ${names.map(n => `<code>${esc(n)}</code>`).join(" ")}</div>` : ""}
+        ${lv >= 3 ? `<div style="margin-top:4px">③ ${r.hint.map(h => `<code>${esc(h)}</code>`).join("<br>")}</div>` : ""}
+        ${lv < 3 ? `<button class="btn ghost small" style="margin-top:4px" data-hint="${r.id}">${["① 개념 보기", "② 쓸 도구 보기", "③ 명령 예시 보기"][lv]}</button>` : ""}</td></tr>`;
+    }).join("")}</table></div>`;
 }
 $("hints").addEventListener("click", e => {
   const id = e.target.dataset.hint; if (!id || EX()) return;
   S.hints[id] = (S.hints[id] || 0) + 1; pen(1, `힌트 ${id} ${S.hints[id]}단계`); refresh();
 });
 
-/* ---------- 3. 네트워크: 구성도 ---------- */
-function renderTopo() {
-  const n = S.net, J = !EX();   // J: 판정 표시(연습 모드만)
-  const t = (x, y, s, o = {}) => `<text x="${x}" y="${y}" font-size="${o.size || 10}" ${o.bold ? 'font-weight="700"' : ""} fill="${o.fill || "var(--ink)"}" ${o.deco ? 'text-decoration="line-through"' : ""}>${esc(s)}</text>`;
-  const box = (x, y, w, h, stroke) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="var(--bg)" stroke="${(J && stroke) || "var(--line)"}" stroke-width="1.5"/>`;
-  const bad = (c) => J && c ? "var(--bad)" : "var(--ink)";
-  const quarantined = n.devices.filter(isQuarantined);
-  const rows = n.devices.filter(d => !(d.host === "GSJ-WEB" && n.webInDmz) && !isQuarantined(d)).map(d => ({ ...d, blocked: isBlocked(d) }));
-  if (!n.guestIso) rows.push({ host: "GUEST-LAPTOP (손님)", ip: "192.168.10.88", truth: "guest" });
-  const nas = vlanOfHost("GSJ-NAS"), bizV = vlanOfHost("KIM-PC");
-  const rowY = {}; let svg = "";
-  svg += `<ellipse cx="320" cy="26" rx="70" ry="18" fill="var(--soft)" stroke="var(--accent)"/>` + t(298, 30, "인터넷", { bold: 1 });
-  svg += `<line x1="320" y1="44" x2="320" y2="70" stroke="var(--muted)" stroke-width="2"/>`;
-  const exposed = S.router.remote || n.upnp || n.inboundDefault !== "deny";
-  svg += box(190, 70, 260, 42, exposed ? "var(--bad)" : "var(--ok)") + t(200, 87, "공유기 (라우터 · 경계 방화벽)", { bold: 1, size: 9.5 }) +
-    t(200, 103, `FW ${n.firmware} · ACL ${n.acl.length}개 · NAC ${{ none: "없음", mac: "MAC", "8021x": "802.1X" }[n.nac.method]}`, { size: 9, fill: "var(--muted)" });
-  svg += `<line x1="300" y1="112" x2="200" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(10, 140, 380, 30 + rows.length * 15, !n.guestIso ? "var(--bad)" : null);
-  svg += t(20, 157, `VLAN ${bizV} · 192.168.10.0/24`, { bold: 1 });
-  rows.forEach((d, i) => {
-    const y = 175 + i * 15; rowY[d.ip] = y;
-    const warn = (d.truth === "block" && !d.blocked) || d.truth === "guest" || d.host === "GSJ-WEB";
-    svg += t(24, y, `${d.blocked ? "⛔" : J && warn ? "⚠" : "●"} ${d.host}`, { fill: d.blocked ? "var(--muted)" : bad(warn), deco: d.blocked, size: 9.5 }) +
-      t(210, y, d.ip, { fill: J && warn ? "var(--bad)" : "var(--muted)", size: 9 });
-  });
-  const dmzAclOk = !aclAllows(vlanOfHost("GSJ-WEB"), nas, 445), gAclOk = !aclAllows(guestV(), nas, 445);
-  svg += `<line x1="350" y1="112" x2="455" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(400, 140, 112, 84, n.webInDmz && dmzAclOk ? "var(--ok)" : null);
-  svg += t(408, 157, "VLAN 30", { bold: 1 }) + t(408, 170, "192.168.30.0/24", { size: 9, fill: "var(--muted)" });
-  svg += n.webInDmz ? t(408, 188, "● GSJ-WEB", { size: 9.5 }) + t(408, 201, "192.168.30.10", { size: 9, fill: "var(--muted)" }) : t(408, 190, "(장치 없음)", { size: 9, fill: "var(--muted)" });
-  if (n.webInDmz) rowY["192.168.30.10"] = 188;
-  if (J && n.webInDmz) svg += t(408, 216, `→업무 NAS: ${dmzAclOk ? "ACL 차단" : "허용"}`, { size: 8.5, fill: dmzAclOk ? "var(--ok)" : "var(--bad)" });
-  svg += `<line x1="380" y1="100" x2="570" y2="140" stroke="var(--muted)" stroke-width="2"/>` + box(520, 140, 114, 84, n.guestIso && gAclOk ? "var(--ok)" : "var(--bad)");
-  svg += t(528, 157, "GSJ-Guest Wi-Fi", { bold: 1, size: 9.5 }) + t(528, 174, `VLAN ${guestV()}`, { size: 9.5, fill: "var(--muted)" });
-  if (J) svg += n.guestIso ? t(528, 192, "업무망과 분리", { size: 9, fill: "var(--ok)" }) + t(528, 216, `→업무 NAS: ${gAclOk ? "ACL 차단" : "허용"}`, { size: 8.5, fill: gAclOk ? "var(--ok)" : "var(--bad)" })
-    : t(528, 192, "업무망과 같은 VLAN", { size: 9, fill: "var(--bad)" });
-  if (quarantined.length) {
-    svg += box(400, 234, 234, 22 + quarantined.length * 14, null) + t(408, 250, "VLAN 99 (NAC 격리)", { bold: 1, size: 9.5 });
-    quarantined.forEach((d, i) => { svg += t(412, 266 + i * 14, `⛔ ${d.host}`, { size: 9, fill: "var(--muted)" }); });
-  }
-  n.portfw.filter(f => f.on).forEach((f, i) => {
-    const ip = f.to.split(":")[0], y = rowY[ip]; if (!y) return;
-    const x2 = ip.startsWith("192.168.30.") ? 470 : 380;
-    svg += `<polyline points="${300 + i * 14},44 ${300 + i * 14},112 ${x2},${y - 4}" fill="none" stroke="${J ? "var(--bad)" : "var(--accent)"}" stroke-width="1.5" stroke-dasharray="5 4"/>` +
-      t(10, 22 + i * 13, `${f.ext}/tcp → ${ip}`, { size: 9, fill: J ? "var(--bad)" : "var(--accent)" });
-  });
-  const h = Math.max(quarantined.length ? 262 + quarantined.length * 14 : 232, 150 + rows.length * 15 + 20);
-  $("topo").innerHTML = `<svg viewBox="0 0 640 ${h}" width="100%" role="img" aria-label="가상정밀 망 구성도" style="font-family:inherit">${svg}</svg>`;
-  $("topoLegend").textContent = J ? "점선: 인터넷에서 들어오는 포트포워딩 · ⚠ 빨강: 위험 · ⛔ 회색: 차단 · 초록 테두리: 분리 완료" : "점선: 인터넷에서 들어오는 포트포워딩 · ⛔: 차단된 장치. 평가 모드에서는 위험 표시가 없습니다.";
-}
-
-/* ---------- 3. 네트워크: 장비 설정 화면 ---------- */
-const netMsgs = {};
-const NET_SECTIONS = {
-  nac: ["AC.L1-b.1.i", "IA.L1-b.1.v", "IA.L1-b.1.vi"], fw: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], vlan: ["SC.L1-b.1.xi"],
-  acl: ["SC.L1-b.1.x", "SC.L1-b.1.xi"], admin: ["SC.L1-b.1.x", "SI.L1-b.1.xii"], wifi: ["IA.L1-b.1.vi"],
-};
+/* ---------- 게이트웨이 웹 콘솔 ---------- */
+const PAGES = [
+  ["grp", "모니터링"], ["dash", "대시보드", []], ["logs", "로그", ["SC.L1-b.1.x"]],
+  ["grp", "네트워크"], ["ports", "스위치 포트 · VLAN", ["SC.L1-b.1.xi"]], ["wifi", "무선(SSID)", ["IA.L1-b.1.vi", "SC.L1-b.1.xi"]],
+  ["grp", "보안"], ["fw", "방화벽 · 포트 포워딩", ["SC.L1-b.1.x", "AC.L1-b.1.iii"]], ["acl", "트래픽 정책(ACL)", ["SC.L1-b.1.x", "SC.L1-b.1.xi"]], ["nac", "NAC · 장치 인증", ["AC.L1-b.1.i", "IA.L1-b.1.v", "IA.L1-b.1.vi"]],
+  ["grp", "시스템"], ["admin", "관리자 · 원격 관리", ["SC.L1-b.1.x"]], ["fwup", "펌웨어", ["SI.L1-b.1.xii"]],
+];
+const PAGE = Object.fromEntries(PAGES.filter(p => p[0] !== "grp").map(p => [p[0], { title: p[1], reqs: p[2] }]));
+let webPage = "dash", selPort = 0, conMsg = "", aclTestOut = "";
 const ACL_SRC = { any: "any", 10: "vlan10", 20: "vlan20", 30: "vlan30" };
 const ACL_DST = { ...ACL_SRC, internet: "internet" };
 const ACL_PORT = { any: "any", 443: "443", 445: "445", 3389: "3389", 53: "53" };
 const WIFI_SEC = { wep: "WEP", "wpa-tkip": "WPA/WPA2 혼합 (TKIP)", "wpa2-aes": "WPA2-AES", wpa3: "WPA3-Personal" };
 const opt = (map, sel) => Object.entries(map).map(([v, l]) => `<option value="${v}" ${String(sel) === v ? "selected" : ""}>${esc(l)}</option>`).join("");
-let aclTestOut = "";
-function renderRouter() {
-  const n = S.net, X = EX();
-  const sec = (key, title, body) => {
-    const done = !X && NET_SECTIONS[key].every(isMet);
-    return `<div class="card ${done ? "done" : ""}" style="margin-bottom:12px" data-sec="${key}"><h3>${title} ${done ? '<span class="pill ok">요구사항 충족</span>' : ""}</h3>
-      ${X ? "" : `<div style="margin-bottom:6px">${NET_SECTIONS[key].map(r => `<span class="pill">${r}</span>`).join("")}</div>`}${body}
-      <div style="margin-top:8px"><button class="btn ghost small" data-netev="${key}">📸 증거 저장</button></div>
-      <div class="msg ${netMsgs[key]?.[0] || ""}">${netMsgs[key]?.[1] || ""}</div></div>`;
-  };
-  const nacState = (d) => isQuarantined(d) ? "격리" : isBlocked(d) ? "차단" : d.decide === "allow" ? "허용" : "통과";
-  $("router").innerHTML = (X ? `<p class="note warn" style="margin-top:0">평가 모드: 아래 화면은 <b>현재 설정 확인용</b>입니다. 설정 변경은 왼쪽 <b>장비 콘솔(CLI)</b>에 직접 입력하세요. 증거 저장은 가능합니다.</p>` : "") +
-    sec("nac", "NAC · 장치 등록", `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
-        <label>인증 방식<br><select data-nac="method">${opt({ none: "사용 안 함", mac: "MAC 주소 허용목록", "8021x": "802.1X" }, n.nac.method)}</select></label>
-        <label>미등록 장치 처리<br><select data-nac="unknown">${opt({ allow: "허용", block: "차단", quarantine: "격리 VLAN 99" }, n.nac.unknown)}</select></label></div>
-      <label class="row"><input type="checkbox" data-nac="wired" ${n.nac.wired ? "checked" : ""}> <span>유선 스위치 포트에도 적용</span></label>
-      ${!X && n.nac.method === "mac" ? '<p class="msg warn" style="margin:2px 0">(연습 힌트) MAC 주소는 위조할 수 있어 802.1X가 더 강한 장치 인증입니다.</p>' : ""}
-      <div class="tbl"><table style="font-size:.82rem"><tr><th>장치(DHCP 이름)</th><th>IP / MAC</th><th>제조사 · 접속</th><th>등록</th><th>현재</th></tr>${n.devices.map((d, i) => `<tr>
-        <td style="word-break:break-all"><b>${esc(d.host)}</b></td><td class="ev" style="white-space:nowrap">${d.ip}<br><span class="muted">${d.mac}</span></td>
-        <td>${esc(d.vendor)}<br><span class="muted">${esc(d.seen)}</span></td>
-        <td><select data-dev="${i}"><option value="">미등록</option><option value="allow" ${d.decide === "allow" ? "selected" : ""}>허용</option><option value="block" ${d.decide === "block" ? "selected" : ""}>차단</option></select></td>
-        <td style="white-space:nowrap">${nacState(d)}</td></tr>`).join("")}</table></div>`) +
-    sec("fw", "경계 방화벽 (인터넷 ↔ 내부)", `<div>외부→내부 기본 정책 <select data-nset="inboundDefault">${opt({ allow: "허용", deny: "차단" }, n.inboundDefault)}</select></div>
-      <p class="muted" style="margin:8px 0 2px;font-size:.85rem">인바운드 허용 규칙 (포트 포워딩)</p>
-      ${n.portfw.map((f, i) => `<label class="row"><input type="checkbox" data-pf="${i}" ${f.on ? "checked" : ""}> <span><b>${f.ext}/tcp</b> → ${f.to} <span class="muted">${esc(f.desc)}</span></span></label>`).join("")}
-      <label class="row"><input type="checkbox" data-nset="upnp" ${n.upnp ? "checked" : ""}> <span>UPnP</span></label>`) +
-    sec("vlan", "VLAN · 스위치 포트", `<div class="tbl"><table style="font-size:.82rem"><tr><th>포트</th><th>연결 장치</th><th>모드</th><th>VLAN</th></tr>${n.ports.map((p, i) => `<tr><td>gi0/${p.n}</td><td>${esc(p.dev)}</td>
-        <td><select data-pmode="${i}">${opt({ access: "access", trunk: "trunk" }, p.mode)}</select></td>
-        <td>${p.mode === "trunk" ? '<span class="muted">태그 전달</span>' : `<select data-pvlan="${i}">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, p.vlan)}</select>`}</td></tr>`).join("")}</table></div>
-      <div style="margin-top:6px">SSID → VLAN: GSJ-Office <select data-ssid="office">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.office)}</select>
-        GSJ-Guest <select data-ssid="guest">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.guest)}</select></div>
-      ${!X && AP().mode !== "trunk" && (n.ssid.office !== n.ssid.guest) ? `<p class="msg warn" style="margin:4px 0">(연습 힌트) AP 포트 gi0/7이 access라 모든 SSID가 VLAN ${AP().vlan}로 갑니다.</p>` : ""}`) +
-    sec("acl", "ACL (VLAN 간 · 아웃바운드)", `<p class="muted" style="margin:0 0 6px;font-size:.85rem">seq 순서대로 처음 일치하는 규칙이 적용됩니다.</p>
-      <div class="tbl"><table style="font-size:.82rem"><tr><th>seq</th><th>동작</th><th>출발</th><th>목적지</th><th>포트</th><th></th></tr>
-        ${n.acl.map(r => `<tr><td>${r.seq}</td><td>${r.act === "allow" ? "permit" : "deny"}</td><td>${ACL_SRC[r.src]}</td><td>${ACL_DST[r.dst]}</td><td>${ACL_PORT[r.port]}</td>
-          <td><button class="btn ghost small" data-acldel="${r.seq}">✕</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">규칙 없음</td></tr>'}
-        <tr><td>-</td><td colspan="5">기본 동작 <select data-nset="aclDefault">${opt({ allow: "permit", deny: "deny" }, n.aclDefault)}</select></td></tr></table></div>
-      <div style="margin-top:6px">seq <input type="text" id="aSeq" style="width:56px" placeholder="10"> <select id="aAct">${opt({ deny: "deny", allow: "permit" }, "deny")}</select>
-        <select id="aSrc">${opt(ACL_SRC, "any")}</select> → <select id="aDst">${opt(ACL_DST, "any")}</select> 포트 <select id="aPort">${opt(ACL_PORT, "any")}</select>
-        <button class="btn small" data-nact="acladd">추가</button></div>
-      ${X ? "" : `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--line)">(연습) 정책 시험: <select id="qSrc">${opt({ 10: "vlan10", 20: "vlan20", 30: "vlan30" }, "20")}</select> →
-        <select id="qDst">${opt({ 10: "vlan10", 20: "vlan20", 30: "vlan30", internet: "internet" }, "10")}</select>
-        <select id="qPort">${opt({ 443: "443", 445: "445", 3389: "3389", 53: "53" }, "445")}</select> <button class="btn ghost small" data-nact="acltest">시험</button>
-        <div class="ev" style="margin-top:4px">${esc(aclTestOut)}</div></div>`}`) +
-    sec("admin", "공유기 관리", `<label class="row"><input type="checkbox" data-nset="remote" ${S.router.remote ? "checked" : ""}> <span>인터넷에서 관리 페이지 접속 허용 (8443)</span></label>
-      <label class="row"><input type="checkbox" data-nset="log" ${n.log ? "checked" : ""}> <span>트래픽·차단 로그 기록</span></label>
-      <div style="margin:4px 0">관리자 계정 admin · 암호 마지막 변경: ${S.router.defaultPw ? "출고 시 설정" : today()}
-        <input type="password" id="rpw" placeholder="새 암호 (12자 이상)"> <button class="btn small" data-nact="rpw">변경</button></div>
-      <div>펌웨어 ${n.firmware}${n.firmware === "1.2.3" ? "" : " · 새 버전 1.2.3 있음"} <button class="btn small" data-nact="fwup" ${n.firmware === "1.2.3" ? "disabled" : ""}>업데이트</button></div>`) +
-    sec("wifi", "Wi-Fi", `<div>GSJ-Office 보안 방식 <select data-nset="wifiSec">${Object.values(WIFI_SEC).map(o => `<option ${o === n.wifiSec ? "selected" : ""}>${o}</option>`).join("")}</select></div>
-      <div style="margin:4px 0">GSJ-Office 암호 마지막 변경: ${n.wifiPwChanged ? today() : "2025-03-02"}
-        <input type="password" id="wpw" placeholder="새 암호 (12자 이상)"> <button class="btn small" data-nact="wpw">변경</button></div>
-      <div class="muted" style="font-size:.85rem">GSJ-Guest: 개방형(암호 없음) · 손님 안내용</div>`);
-  if (X) $("router").querySelectorAll("input, select, button:not([data-netev])").forEach(el => el.disabled = true);
+const tog = (attr, on, label) => `<label class="sw-toggle"><input type="checkbox" class="cfg" ${attr} ${on ? "checked" : ""}> ${label}</label>`;
+const pnl = (title, body) => `<div class="panel"><h3>${title}</h3><div class="pb">${body}</div></div>`;
+const vcls = (p) => p.mode === "trunk" ? "vt" : "v" + p.vlan;
+function logLines() {
+  const n = S.net, L = [], t = (h, m) => `${today()} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  L.push([t(9, 41), "SYSTEM", "관리자 로그인 (웹, monitor)"]);
+  n.portfw.filter(f => f.on && f.ext !== 443).forEach((f, i) => L.push([t(9, 12 - i * 3), "FW-ALLOW", `WAN 185.220.101.${40 + i}:5${i}211 → ${f.to} (포트 포워딩 ${f.ext}) — 짧은 간격 반복 접속`]));
+  L.push([t(8, 57), n.inboundDefault === "deny" ? "FW-DENY" : "FW-ALLOW", `WAN 45.13.27.9:51244 → 192.168.10.11:445 (${n.inboundDefault === "deny" ? "기본 차단" : "기본 허용"})`]);
+  const esp = n.devices.find(d => d.host === "ESP_3C21A9");
+  if (n.upnp && !isBlocked(esp)) L.push([t(8, 33), "UPNP", "192.168.10.61 요청: 외부 49152/tcp 개방 → 허용"]);
+  n.devices.filter(d => d.truth === "block").forEach(d => L.push([t(8, 12), "NAC", isQuarantined(d) ? `${d.mac} ${d.host} → VLAN 99 격리` : isBlocked(d) ? `${d.mac} ${d.host} → 접속 거부` : `${d.mac} ${d.host} → DHCP 할당 ${d.ip}`]));
+  if (n.guestIso) { const g = guestV(), nas = vlanOfHost("GSJ-NAS"); L.push([t(8, 5), aclAllows(g, nas, 445) ? "ACL-ALLOW" : "ACL-DENY", `vlan${g} 192.168.20.31 → vlan${nas} 192.168.10.20:445 (${aclHit(g, nas, 445)})`]); }
+  L.push([t(7, 58), "AUTH", "메일 관리 센터 연동: park@gsj.example 로그인 실패 3회 (해외 IP)"]);
+  return L;
 }
-function renderNet() { renderTopo(); renderRouter(); }
-
-$("router").addEventListener("change", e => {
+function renderWeb() {
+  const n = S.net, X = EX();
+  $("addr").textContent = `🔒 https://192.168.10.1/#/${webPage}`;
+  $("conFw").textContent = `펌웨어 ${n.firmware}`;
+  $("conUser").textContent = X ? "로그인: monitor (읽기 전용)" : "로그인: admin";
+  $("conNav").innerHTML = PAGES.map(p => p[0] === "grp" ? `<div class="grp">${p[1]}</div>` : `<button data-page="${p[0]}" ${webPage === p[0] ? 'aria-current="page"' : ""}>${p[1]}</button>`).join("");
+  const pg = PAGE[webPage];
+  let body = "";
+  if (webPage === "dash") {
+    const conn = n.devices.filter(d => !isBlocked(d)).length;
+    body = `<div class="grid">` +
+      pnl("시스템", `<div class="kv"><span>모델</span><span>SG-200</span><span>펌웨어</span><span>${n.firmware}${n.firmware === "1.2.3" ? "" : ' <span class="tag warn">새 버전 있음</span>'}</span><span>가동 시간</span><span>13일 4시간 21분</span><span>WAN IP</span><span>203.0.113.57</span><span>관리 접속</span><span>${S.router.remote ? "LAN + WAN" : "LAN 전용"}</span></div>`) +
+      pnl("리소스", `<div>CPU 12%<div class="meter"><i style="width:12%"></i></div></div><div style="margin-top:6px">메모리 41%<div class="meter"><i style="width:41%"></i></div></div><div style="margin-top:6px">세션 214 / 8000<div class="meter"><i style="width:3%"></i></div></div>`) +
+      pnl("네트워크", `<div class="kv"><span>연결 장치</span><span>${conn}대</span><span>VLAN 사용</span><span>${[...new Set(n.ports.filter(p => p.mode === "access").map(p => p.vlan))].join(", ")}</span><span>트렁크 포트</span><span>${n.ports.filter(p => p.mode === "trunk").map(p => "gi0/" + p.n).join(", ")}</span><span>SSID</span><span>GSJ-Office(v${n.ssid.office}) · GSJ-Guest(v${n.ssid.guest})</span></div>`) +
+      pnl("보안", `<div class="kv"><span>인바운드 기본</span><span>${n.inboundDefault === "deny" ? "차단" : "허용"}</span><span>포트 포워딩</span><span>${n.portfw.filter(f => f.on).length}개 활성</span><span>UPnP</span><span>${n.upnp ? "사용" : "사용 안 함"}</span><span>ACL</span><span>${n.acl.length}개 · 기본 ${n.aclDefault === "allow" ? "permit" : "deny"}</span><span>NAC</span><span>${{ none: "사용 안 함", mac: "MAC", "8021x": "802.1X" }[n.nac.method]}</span><span>로그</span><span>${n.log ? "기록 중" : "꺼짐"}</span></div>`) + `</div>`;
+  } else if (webPage === "logs") {
+    body = pnl("로그 설정", tog('data-nset="log"', n.log, "트래픽·차단·인증 이벤트 기록")) +
+      pnl("최근 이벤트", n.log ? `<div class="tbl"><table><tr><th>시각</th><th>유형</th><th>내용</th></tr>${logLines().map(l => `<tr><td class="ev" style="white-space:nowrap">${l[0]}</td><td><span class="tag ${/DENY|NAC/.test(l[1]) ? "" : /ALLOW|UPNP/.test(l[1]) ? "warn" : ""}">${l[1]}</span></td><td>${esc(l[2])}</td></tr>`).join("")}</table></div>`
+        : '<p class="muted" style="margin:0">로그 기록이 꺼져 있어 표시할 이벤트가 없습니다.</p>');
+  } else if (webPage === "ports") {
+    const p = n.ports[selPort];
+    body = pnl("전면 패널 — GSJ-SW8 (8포트 관리형)", `<div class="sw"><div class="brand"><b>GSJ-SW8</b><br>1000BASE-T</div>${n.ports.map((pt, i) => `<button class="port" data-port="${i}" aria-pressed="${i === selPort}"><span class="led ${vcls(pt)}"></span><span class="jack"></span>${pt.n}</button>`).join("")}</div>
+        <div class="legend"><span><i class="v1"></i>VLAN 1</span><span><i class="v10"></i>VLAN 10</span><span><i class="v20"></i>VLAN 20</span><span><i class="v30"></i>VLAN 30</span><span><i class="vt"></i>트렁크</span><span>포트를 눌러 선택</span></div>`) +
+      pnl(`포트 설정 — gi0/${p.n}`, `<div class="kv"><span>연결 장치</span><span>${esc(p.dev)}</span><span>링크</span><span>1000 Mbps 전이중</span>
+        <span>모드</span><span><select class="cfg" data-pmode="${selPort}">${opt({ access: "access", trunk: "trunk" }, p.mode)}</select></span>
+        <span>access VLAN</span><span>${p.mode === "trunk" ? '<span class="muted">트렁크: 모든 VLAN 태그 전달</span>' : `<select class="cfg" data-pvlan="${selPort}">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, p.vlan)}</select>`}</span></div>`) +
+      pnl("포트 요약", `<div class="tbl"><table><tr><th>포트</th><th>장치</th><th>모드</th><th>VLAN</th></tr>${n.ports.map(pt => `<tr><td>gi0/${pt.n}</td><td>${esc(pt.dev)}</td><td>${pt.mode}</td><td>${pt.mode === "trunk" ? "all" : pt.vlan}</td></tr>`).join("")}</table></div>`);
+  } else if (webPage === "wifi") {
+    body = pnl("SSID", `<div class="tbl"><table><tr><th>SSID</th><th>VLAN</th><th>보안</th><th>암호 마지막 변경</th></tr>
+        <tr><td>GSJ-Office</td><td><select class="cfg" data-ssid="office">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.office)}</select></td><td><select class="cfg" data-nset="wifiSec">${Object.values(WIFI_SEC).map(o => `<option ${o === n.wifiSec ? "selected" : ""}>${o}</option>`).join("")}</select></td><td>${n.wifiPwChanged ? today() : "2025-03-02"}</td></tr>
+        <tr><td>GSJ-Guest</td><td><select class="cfg" data-ssid="guest">${opt({ 1: "1", 10: "10", 20: "20", 30: "30" }, n.ssid.guest)}</select></td><td>개방형</td><td>-</td></tr></table></div>
+        <div style="margin-top:8px">GSJ-Office 새 암호 <input type="password" class="cfg" id="wpw" placeholder="12자 이상"> <button class="btn small cfg" data-nact="wpw">변경</button></div>`) +
+      pnl("AP 상태", `<div class="kv"><span>AP</span><span>GSJ-AP1 · 스위치 gi0/7 (${AP().mode}${AP().mode === "access" ? " VLAN " + AP().vlan : ""})</span><span>접속 단말</span><span>${n.devices.filter(d => !portOf(d.host) && !isBlocked(d)).length + (guestLaptop() || n.guestIso ? 1 : 0)}대</span></div>`);
+  } else if (webPage === "fw") {
+    body = pnl("WAN → LAN 기본 정책", `<select class="cfg" data-nset="inboundDefault">${opt({ allow: "허용", deny: "차단" }, n.inboundDefault)}</select> <span class="muted">명시적으로 허용한 규칙 외 인바운드 연결 처리</span>`) +
+      pnl("포트 포워딩 (인바운드 허용 규칙)", `<div class="tbl"><table><tr><th>사용</th><th>외부 포트</th><th>내부 대상</th><th>설명</th></tr>${n.portfw.map((f, i) => `<tr><td><input type="checkbox" class="cfg" data-pf="${i}" ${f.on ? "checked" : ""} aria-label="${f.ext} 사용"></td><td>${f.ext}/tcp</td><td class="ev">${f.to}</td><td>${esc(f.desc)}</td></tr>`).join("")}</table></div>`) +
+      pnl("UPnP", tog('data-nset="upnp"', n.upnp, "UPnP 사용 (내부 장치의 포트 개방 요청 자동 허용)"));
+  } else if (webPage === "acl") {
+    body = pnl("규칙 (seq 순서대로 처음 일치하는 규칙 적용)", `<div class="tbl"><table><tr><th>seq</th><th>동작</th><th>출발</th><th>목적지</th><th>포트</th><th></th></tr>
+        ${n.acl.map(r => `<tr><td>${r.seq}</td><td><span class="tag ${r.act === "allow" ? "ok" : "bad"}">${r.act === "allow" ? "permit" : "deny"}</span></td><td>${ACL_SRC[r.src]}</td><td>${ACL_DST[r.dst]}</td><td>${ACL_PORT[r.port]}</td><td><button class="btn ghost small cfg" data-acldel="${r.seq}">삭제</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">규칙 없음</td></tr>'}
+        <tr><td>-</td><td colspan="5">기본 동작 <select class="cfg" data-nset="aclDefault">${opt({ allow: "permit", deny: "deny" }, n.aclDefault)}</select></td></tr></table></div>
+        <div style="margin-top:8px">seq <input type="text" class="cfg" id="aSeq" style="width:56px"> <select class="cfg" id="aAct">${opt({ deny: "deny", allow: "permit" }, "deny")}</select>
+        <select class="cfg" id="aSrc">${opt(ACL_SRC, "any")}</select> → <select class="cfg" id="aDst">${opt(ACL_DST, "any")}</select> 포트 <select class="cfg" id="aPort">${opt(ACL_PORT, "any")}</select>
+        <button class="btn small cfg" data-nact="acladd">규칙 추가</button></div>`) +
+      (X ? "" : pnl("(연습) 정책 시험", `<select id="qSrc">${opt({ 10: "vlan10", 20: "vlan20", 30: "vlan30" }, "20")}</select> → <select id="qDst">${opt({ 10: "vlan10", 20: "vlan20", 30: "vlan30", internet: "internet" }, "10")}</select>
+        <select id="qPort">${opt({ 443: "443", 445: "445", 3389: "3389", 53: "53" }, "445")}</select> <button class="btn ghost small" data-nact="acltest">시험</button><div class="ev" style="margin-top:4px">${esc(aclTestOut)}</div>`));
+  } else if (webPage === "nac") {
+    const st = (d) => isQuarantined(d) ? "격리" : isBlocked(d) ? "차단" : d.decide === "allow" ? "허용" : "통과";
+    body = pnl("정책", `<div class="kv"><span>인증 방식</span><span><select class="cfg" data-nac="method">${opt({ none: "사용 안 함", mac: "MAC 주소 허용목록", "8021x": "802.1X" }, n.nac.method)}</select></span>
+        <span>미등록 장치</span><span><select class="cfg" data-nac="unknown">${opt({ allow: "허용", block: "차단", quarantine: "격리 VLAN 99" }, n.nac.unknown)}</select></span>
+        <span>유선 포트</span><span>${tog('data-nac="wired"', n.nac.wired, "스위치 포트에도 적용")}</span></div>`) +
+      pnl("장치 목록 (DHCP·ARP 수집)", `<div class="tbl"><table><tr><th>DHCP 이름</th><th>IP</th><th>MAC</th><th>제조사</th><th>접속</th><th>등록</th><th>상태</th></tr>${n.devices.map((d, i) => `<tr>
+        <td><b>${esc(d.host)}</b></td><td class="ev">${d.ip}</td><td class="ev">${d.mac}</td><td>${esc(d.vendor)}</td><td class="muted">${esc(d.seen)}</td>
+        <td><select class="cfg" data-dev="${i}">${opt({ "": "미등록", allow: "허용", block: "차단" }, d.decide || "")}</select></td><td style="white-space:nowrap">${st(d)}</td></tr>`).join("")}</table></div>`);
+  } else if (webPage === "admin") {
+    body = pnl("원격 관리", tog('data-nset="remote"', S.router.remote, "WAN(인터넷)에서 관리 페이지 접속 허용 (TCP 8443)")) +
+      pnl("관리자 계정", `<div class="kv"><span>계정</span><span>admin</span><span>암호 마지막 변경</span><span>${S.router.defaultPw ? "출고 시 설정" : today()}</span></div>
+        <div style="margin-top:8px">새 암호 <input type="password" class="cfg" id="rpw" placeholder="12자 이상"> <button class="btn small cfg" data-nact="rpw">변경</button></div>`) +
+      pnl("관리 계정 목록", `<div class="tbl"><table><tr><th>계정</th><th>권한</th><th>접속 방식</th></tr><tr><td>admin</td><td>전체</td><td>웹 · SSH</td></tr><tr><td>monitor</td><td>읽기 전용</td><td>웹</td></tr></table></div>`);
+  } else if (webPage === "fwup") {
+    body = pnl("펌웨어", `<div class="kv"><span>현재 버전</span><span>${n.firmware}</span><span>최신 버전</span><span>1.2.3 (2026-10-28)</span></div>
+        ${n.firmware === "1.2.3" ? '<p class="muted">최신 버전입니다.</p>' : `<div class="note" style="margin-top:10px"><b>1.2.3 릴리스 노트</b><br>· GSJ-SA-2026-07: 웹 관리 화면 인증 우회 및 원격 코드 실행 취약점 수정<br>· UPnP 요청 처리 안정성 개선</div><button class="btn cfg" data-nact="fwup">업데이트 설치</button>`}`);
+  }
+  const coach = !X && pg.reqs.length ? `<div class="coach">학습 도우미 · 이 화면 관련: ${pg.reqs.map(r => `${r} ${isMet(r) ? '<span class="tag ok">충족</span>' : '<span class="tag bad">미충족</span>'}`).join(" · ")}</div>` : "";
+  $("conMain").innerHTML = (X ? `<div class="ro">monitor 계정은 <b>읽기 전용</b>입니다. 설정 변경은 SSH 터미널에서 admin으로 하세요.</div>` : "") +
+    `<div class="ph"><h2>${pg.title}</h2><span class="crumbs">GSJ-GW › ${pg.title}</span></div>${body}${coach}<div class="msg ${conMsg.startsWith("%") ? "bad" : "ok"}">${esc(conMsg.replace(/^%\s?/, ""))}</div>`;
+  if (X) $("conMain").querySelectorAll(".cfg").forEach(el => el.disabled = true);
+}
+document.querySelector('[data-win="web"]').addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.page) { webPage = t.dataset.page; conMsg = ""; renderWeb(); return; }
+  if (t.dataset.port !== undefined) { selPort = +t.dataset.port; renderWeb(); return; }
+  if (t.dataset.cap) {
+    const reqs = PAGE[webPage].reqs; if (!reqs.length) { conMsg = "% 이 화면은 증거로 쓸 설정 화면이 아닙니다."; renderWeb(); return; }
+    const file = `게이트웨이_${webPage}_${today()}.png`; addEvidence(file, reqs, "게이트웨이 화면 캡처"); conMsg = evMsg(reqs, file)[1]; toast("화면을 캡처했습니다"); renderWeb(); return;
+  }
+  if (EX()) return;
+  let r = null;
+  if (t.dataset.nact === "rpw") r = NETOP.rpw($("rpw").value) || "관리자 암호를 변경했습니다.";
+  else if (t.dataset.nact === "wpw") r = NETOP.wpw($("wpw").value) || "GSJ-Office 암호를 변경했습니다.";
+  else if (t.dataset.nact === "fwup") r = NETOP.fwup();
+  else if (t.dataset.nact === "acladd") r = NETOP.aclAdd(+$("aSeq").value, $("aAct").value, $("aSrc").value, $("aDst").value, $("aPort").value) || "규칙을 추가했습니다.";
+  else if (t.dataset.acldel !== undefined) r = NETOP.aclDel(+t.dataset.acldel) || "규칙을 삭제했습니다.";
+  else if (t.dataset.nact === "acltest") { const s = $("qSrc").value, d = $("qDst").value, p = $("qPort").value; aclTestOut = `${ACL_SRC[s]} → ${ACL_DST[d]} :${p}  ⇒  ${aclAllows(s, d, p) ? "permit" : "deny"}  (${aclHit(s, d, p)})`; r = ""; }
+  else return;
+  conMsg = r; if (r && !r.startsWith("%")) toast("설정이 적용되었습니다"); save(); refresh();
+});
+document.querySelector('[data-win="web"]').addEventListener("change", e => {
   if (EX()) return;
   const el = e.target, n = S.net;
   if (el.dataset.dev !== undefined) n.devices[+el.dataset.dev].decide = el.value || null;
@@ -864,9 +927,8 @@ $("router").addEventListener("change", e => {
   else if (el.dataset.pvlan !== undefined) n.ports[+el.dataset.pvlan].vlan = +el.value;
   else if (el.dataset.ssid) n.ssid[el.dataset.ssid] = +el.value;
   else return;
-  save(); refresh();
+  conMsg = "설정이 적용되었습니다."; toast("설정이 적용되었습니다"); save(); refresh();
 });
-// 연습 모드 화면 조작과 CLI가 같은 함수를 쓴다
 const NETOP = {
   aclAdd(seq, act, src, dst, port) {
     if (!(seq > 0 && seq < 10000)) return "% seq는 1~9999 숫자";
@@ -882,33 +944,13 @@ const NETOP = {
   wpw(v) { if (v.length < 12) return "% 암호는 12자 이상"; S.net.wifiPwChanged = true; return ""; },
   fwup() { if (S.net.firmware === "1.2.3") return "% 이미 최신"; S.net.firmware = "1.2.3"; return "펌웨어 1.2.3 설치 완료, 재시작"; },
 };
-$("router").addEventListener("click", e => {
-  const t = e.target, sec = t.closest("[data-sec]"); if (!sec) return;
-  const key = sec.dataset.sec, msg = (k, m) => { netMsgs[key] = [k, m]; };
-  if (t.dataset.netev) {
-    const file = `장비_${key}_${today()}.png`;
-    addEvidence(file, NET_SECTIONS[key], "장비 화면 캡처"); msg(...evMsg(NET_SECTIONS[key], file));
-  } else if (EX()) return;
-  else if (t.dataset.nact === "rpw") { const r = NETOP.rpw($("rpw").value); msg(r ? "bad" : "ok", r || "관리자 암호 변경 완료"); }
-  else if (t.dataset.nact === "wpw") { const r = NETOP.wpw($("wpw").value); msg(r ? "bad" : "ok", r || "Wi-Fi 암호 변경 완료"); }
-  else if (t.dataset.nact === "fwup") msg("ok", NETOP.fwup());
-  else if (t.dataset.nact === "acladd") {
-    const r = NETOP.aclAdd(+$("aSeq").value, $("aAct").value, $("aSrc").value, $("aDst").value, $("aPort").value);
-    msg(r.startsWith("%") ? "bad" : r ? "warn" : "ok", r || "규칙 추가");
-  } else if (t.dataset.acldel !== undefined) { NETOP.aclDel(+t.dataset.acldel); msg("ok", "규칙 삭제"); }
-  else if (t.dataset.nact === "acltest") {
-    const s = $("qSrc").value, d = $("qDst").value, p = $("qPort").value;
-    aclTestOut = `${ACL_SRC[s]} → ${ACL_DST[d]} :${p}  ⇒  ${aclAllows(s, d, p) ? "permit" : "deny"}  (${aclHit(s, d, p)})`;
-  } else return;
-  save(); refresh();
-});
 
-/* ---------- 3. 네트워크: 장비 CLI ---------- */
+/* ---------- SSH 터미널 (장비 CLI) ---------- */
 const cli = { mode: "exec", port: null };
 const cliOut = [];
 function cprint(text, cls) { cliOut.push(cls ? `<span class="${cls}">${esc(text)}</span>` : esc(text)); $("cli").innerHTML = cliOut.join("\n"); $("cli").scrollTop = 1e9; }
 function cliPrompt() { $("cliPrompt").textContent = cli.mode === "exec" ? "GSJ-GW#" : cli.mode === "config" ? "GSJ-GW(config)#" : `GSJ-GW(config-if-gi0/${cli.port + 1})#`; }
-function cliBanner() { cprint("GSJ-GW 공유기·스위치 통합 콘솔 (가상). ? 로 명령 문법을 봅니다.", "dim"); }
+function cliBanner() { cprint("login as: admin\nadmin@192.168.10.1's password: ************\n\nGSJ-GW SG-200 보안 게이트웨이 (가상)\n권한 없는 접속은 금지됩니다. 모든 세션은 기록됩니다.\n? 로 명령 문법을 봅니다.\n", "dim"); }
 const VTOK = { vlan10: "10", vlan20: "20", vlan30: "30", any: "any", internet: "internet" };
 const normMac = (m) => m.toUpperCase().replace(/-/g, ":");
 function runningConfig() {
@@ -925,37 +967,27 @@ function runningConfig() {
   return L.join("\n");
 }
 const CLI_HELP = {
-  exec: ["show running-config | show vlan | show access-lists | show nac | show firewall | show wifi",
-    "configure terminal"],
-  config: ["interface gi0/<1-8>",
-    "firewall inbound default <permit|deny>",
-    "[no] port-forward <포트>          (설정된 포워딩 켜기/끄기)",
-    "[no] upnp | [no] logging | [no] remote-management",
-    "admin password <암호>  |  firmware upgrade",
-    "nac mode <none|mac|dot1x>  |  nac unregistered <permit|block|quarantine>  |  [no] nac wired",
-    "nac register <MAC> <permit|deny>  |  no nac register <MAC>",
-    "wifi ssid <GSJ-Office|GSJ-Guest> vlan <1|10|20|30>",
+  exec: ["show running-config | show vlan | show access-lists | show nac | show firewall | show wifi | show logging", "configure terminal"],
+  config: ["interface gi0/<1-8>", "firewall inbound default <permit|deny>", "[no] port-forward <포트>", "[no] upnp | [no] logging | [no] remote-management",
+    "admin password <암호>  |  firmware upgrade", "nac mode <none|mac|dot1x>  |  nac unregistered <permit|block|quarantine>  |  [no] nac wired",
+    "nac register <MAC> <permit|deny>  |  no nac register <MAC>", "wifi ssid <GSJ-Office|GSJ-Guest> vlan <1|10|20|30>",
     "wifi ssid GSJ-Office security <wep|wpa-tkip|wpa2-aes|wpa3>  |  wifi ssid GSJ-Office password <암호>",
     "access-list <seq> <permit|deny> <vlan10|vlan20|vlan30|any> <vlan10|vlan20|vlan30|any|internet> [<포트>|any]",
-    "no access-list <seq>  |  access-list default <permit|deny>",
-    "do show ...  |  end  |  exit"],
+    "no access-list <seq>  |  access-list default <permit|deny>", "do show ...  |  end  |  exit"],
   if: ["switchport mode <access|trunk>", "switchport access vlan <1|10|20|30>", "description <설명>", "exit | end"],
 };
 function cliShow(what) {
   const n = S.net;
   if (/^run/.test(what)) return runningConfig();
-  if (/^vlan/.test(what)) {
-    const rows = [1, 10, 20, 30].map(v => `${String(v).padEnd(5)} ${n.ports.filter(p => p.mode === "access" && p.vlan === v).map(p => "gi0/" + p.n).join(", ") || "-"}`);
-    return ["VLAN  포트 (access)", "----  ------------", ...rows, "", `트렁크: ${n.ports.filter(p => p.mode === "trunk").map(p => "gi0/" + p.n).join(", ") || "-"}`,
-      `SSID: GSJ-Office → vlan ${n.ssid.office}, GSJ-Guest → vlan ${n.ssid.guest}`].join("\n");
-  }
+  if (/^vlan/.test(what)) return ["VLAN  포트 (access)", "----  ------------", ...[1, 10, 20, 30].map(v => `${String(v).padEnd(5)} ${n.ports.filter(p => p.mode === "access" && p.vlan === v).map(p => "gi0/" + p.n).join(", ") || "-"}`), "",
+    `트렁크: ${n.ports.filter(p => p.mode === "trunk").map(p => "gi0/" + p.n).join(", ") || "-"}`, `SSID: GSJ-Office → vlan ${n.ssid.office}, GSJ-Guest → vlan ${n.ssid.guest}`].join("\n");
   if (/^access/.test(what)) return (n.acl.map(r => `  ${String(r.seq).padEnd(5)} ${(r.act === "allow" ? "permit" : "deny").padEnd(6)} ${ACL_SRC[r.src].padEnd(7)} ${ACL_DST[r.dst].padEnd(9)} ${r.port}`).join("\n") || "  (규칙 없음)") + `\n  default ${n.aclDefault === "allow" ? "permit" : "deny"}`;
-  if (/^nac/.test(what)) return [`mode ${n.nac.method} · unregistered ${n.nac.unknown} · wired ${n.nac.wired ? "on" : "off"}`, "",
-    "MAC                IP              DHCP 이름        등록",
+  if (/^nac/.test(what)) return [`mode ${n.nac.method} · unregistered ${n.nac.unknown} · wired ${n.nac.wired ? "on" : "off"}`, "", "MAC                IP              DHCP 이름        등록",
     ...n.devices.map(d => `${d.mac}  ${d.ip.padEnd(15)} ${d.host.padEnd(16)} ${d.decide ? (d.decide === "allow" ? "permit" : "deny") : "-"}`)].join("\n");
   if (/^fire/.test(what)) return [`inbound default ${n.inboundDefault === "deny" ? "deny" : "permit"}`, ...n.portfw.map(f => `port-forward ${f.ext} → ${f.to} (${f.desc}) ${f.on ? "on" : "off"}`),
     `upnp ${n.upnp ? "on" : "off"} · logging ${n.log ? "on" : "off"} · remote-management ${S.router.remote ? "on" : "off"}`].join("\n");
   if (/^wifi/.test(what)) return `GSJ-Office  vlan ${n.ssid.office}  ${n.wifiSec}  암호 변경 ${n.wifiPwChanged ? today() : "2025-03-02"}\nGSJ-Guest   vlan ${n.ssid.guest}  open`;
+  if (/^log/.test(what)) return n.log ? logLines().map(l => `${l[0]}  ${l[1].padEnd(9)} ${l[2]}`).join("\n") : "% logging disabled";
   return "% Invalid input detected";
 }
 function cliRun(line) {
@@ -966,7 +998,7 @@ function cliRun(line) {
   if (lc[0] === "end") { cli.mode = "exec"; return ""; }
   if (lc[0] === "exit") { cli.mode = cli.mode === "if" ? "config" : "exec"; return ""; }
   if (cli.mode === "exec") {
-    if (/^conf(igure)?$/.test(lc[0]) && (!lc[1] || /^t(erminal)?$/.test(lc[1]))) { cli.mode = "config"; return "설정 모드입니다. 한 줄에 하나씩 입력하세요. end 로 종료."; }
+    if (/^conf(igure)?$/.test(lc[0]) && (!lc[1] || /^t(erminal)?$/.test(lc[1]))) { cli.mode = "config"; return "Enter configuration commands, one per line. End with end."; }
     return "% Invalid input detected (설정은 configure terminal 후 입력)";
   }
   if (cli.mode === "if") {
@@ -975,13 +1007,8 @@ function cliRun(line) {
     if (lc[0] === "switchport" && lc[1] === "access" && lc[2] === "vlan" && ["1", "10", "20", "30"].includes(lc[3])) { if (p.mode !== "access") return "% 포트가 trunk 모드입니다"; p.vlan = +lc[3]; return ""; }
     if (lc[0] === "description") return "";
   }
-  // config 모드 (인터페이스 모드에서도 전역 명령 허용)
   const neg = lc[0] === "no", a = neg ? lc.slice(1) : lc, at = neg ? tk.slice(1) : tk;
-  if (/^int(erface)?$/.test(a[0]) && !neg) {
-    const m = (a[1] || "").match(/^(?:gi(?:gabitethernet)?0\/|g0\/)?([1-8])$/);
-    if (!m) return "% 인터페이스는 gi0/1 ~ gi0/8";
-    cli.mode = "if"; cli.port = +m[1] - 1; return "";
-  }
+  if (/^int(erface)?$/.test(a[0]) && !neg) { const m = (a[1] || "").match(/^(?:gi(?:gabitethernet)?0\/|g0\/)?([1-8])$/); if (!m) return "% 인터페이스는 gi0/1 ~ gi0/8"; cli.mode = "if"; cli.port = +m[1] - 1; return ""; }
   if (a[0] === "firewall" && a[1] === "inbound" && a[2] === "default" && ["permit", "deny"].includes(a[3])) { n.inboundDefault = a[3] === "deny" ? "deny" : "allow"; return ""; }
   if (a[0] === "port-forward" && a[1]) { const f = n.portfw.find(x => String(x.ext) === a[1]); if (!f) return `% 포트 ${a[1]} 포워딩 항목 없음`; f.on = !neg; return ""; }
   if (a[0] === "upnp" && a.length === 1) { n.upnp = !neg; return ""; }
@@ -1023,180 +1050,217 @@ bindHistory($("cliIn"), $("cliForm"), v => {
   cliPrompt(); save(); refresh();
 });
 
-/* ---------- 3. 네트워크: 점검 도구 ---------- */
+/* ---------- 점검용 노트북 ---------- */
+const toolOut = [];
 let lastTool = null;
-function netOut(lines) { $("netOut").textContent = lines.filter(l => l !== null).join("\n"); }
-document.querySelector("#p-net").addEventListener("click", e => {
-  const a = e.target.dataset.net, n = S.net, J = !EX();
-  if (a === "scan") {
-    const open = n.portfw.filter(f => f.on).map(f => `  ${String(f.ext).padEnd(5)}/tcp  open  ${f.ext === 443 ? "https" : f.ext === 3389 ? "ms-wbt-server" : "http-alt"}` + (J ? `   → ${f.to} ${f.desc}${f.ext === 443 ? (n.webInDmz ? " (DMZ: 정상)" : " ⚠ 업무망 서버 공개") : " ⚠ 공개하면 안 됨"}` : ""));
-    if (S.router.remote) open.push("  8443 /tcp  open  https-alt" + (J ? "   → 공유기 관리 페이지 ⚠" : ""));
-    const esp = n.devices.find(d => d.host === "ESP_3C21A9");
-    if (n.upnp && !isBlocked(esp)) open.push("  49152/tcp  open  unknown" + (J ? "   → 192.168.10.61 (UPnP 자동) ⚠" : ""));
-    if (n.inboundDefault !== "deny") open.push("  135  /tcp  open  msrpc", "  445  /tcp  open  microsoft-ds" + (J ? "   ⚠ 인바운드 기본 허용" : ""));
-    netOut([`$ nmap -Pn 203.0.113.57   (외부 인터넷에서, ${new Date().toLocaleTimeString("ko-KR")})`, "PORT       STATE SERVICE", ...(open.length ? open : ["  (열린 포트 없음)"]),
-      J ? (open.some(l => l.includes("⚠")) ? "\n(연습 힌트) ⚠ 표시 포트를 닫거나 원인을 조치하세요." : "\n(연습 힌트) 공개 의도에 맞는 포트만 열려 있습니다.") : null]);
-    lastTool = { reqs: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], name: "외부포트스캔" };
-  } else if (a === "t-guest") {
-    const g = guestV(), nas = vlanOfHost("GSJ-NAS"), blocked = !aclAllows(g, nas, 445);
-    netOut([`GSJ-Guest에 연결한 노트북에서:`, "PS> Test-NetConnection -ComputerName 192.168.10.20 -Port 445", "",
-      blocked ? "경고: TCP connect to 192.168.10.20:445 failed\nTcpTestSucceeded : False" : "TcpTestSucceeded : True",
-      J ? `\n(연습 힌트) VLAN ${g} → VLAN ${nas} · ${aclHit(g, nas, 445)}` : null]);
-    lastTool = { reqs: ["SC.L1-b.1.xi"], name: "분리시험_손님WiFi" };
-  } else if (a === "t-web") {
-    const w = vlanOfHost("GSJ-WEB"), nas = vlanOfHost("GSJ-NAS"), blocked = !aclAllows(w, nas, 445);
-    netOut([`GSJ-WEB(${webIp()})에서:`, "$ nc -zv -w 3 192.168.10.20 445", "",
-      blocked ? "nc: connect to 192.168.10.20 port 445 (tcp) timed out" : "Connection to 192.168.10.20 445 port [tcp/microsoft-ds] succeeded!",
-      J ? `\n(연습 힌트) VLAN ${w} → VLAN ${nas} · ${aclHit(w, nas, 445)}` : null]);
-    lastTool = { reqs: ["SC.L1-b.1.xi"], name: "분리시험_웹서버" };
-  } else if (a === "t-out") {
-    const b = vlanOfHost("KIM-PC"), r = (p) => aclAllows(b, "internet", p);
-    netOut(["KIM-PC에서 인터넷 시험 서버(portquiz.example)로:", "",
-      `  443  : ${r(443) ? "연결됨" : "시간 초과"}`, `  445  : ${r(445) ? "연결됨" : "시간 초과"}`, `  3389 : ${r(3389) ? "연결됨" : "시간 초과"}`,
-      J ? `\n(연습 힌트) ${r(445) || r(3389) ? "파일 공유·원격 접속 프로토콜이 인터넷으로 나갈 수 있습니다." : r(443) ? "웹은 허용, 위험 프로토콜은 차단 — 정상" : "웹까지 막혀 업무 장애"}` : null]);
-    lastTool = { reqs: ["SC.L1-b.1.x"], name: "아웃바운드시험" };
-  } else if (e.target.dataset.netev === "tools") {
-    if (!lastTool) { $("netToolMsg").className = "msg bad"; $("netToolMsg").textContent = "먼저 점검 도구를 실행하세요."; return; }
-    const file = `${lastTool.name}_${today()}.txt`;
-    addEvidence(file, lastTool.reqs, "네트워크 점검 도구");
-    const [k, m] = evMsg(lastTool.reqs, file);
-    $("netToolMsg").className = "msg " + k; $("netToolMsg").textContent = m;
+function tprint(text, cls) { toolOut.push(cls ? `<span class="${cls}">${esc(text)}</span>` : esc(text)); $("toolOut").innerHTML = toolOut.join("\n"); $("toolOut").scrollTop = 1e9; }
+function toolBanner() { tprint("점검용 노트북 (가상) — 위쪽에서 접속 위치를 고른 뒤 명령을 입력하세요.\n예: nmap 203.0.113.57   nc -zv 192.168.10.20 445   ip addr\n", "dim"); }
+const LOC = { internet: "인터넷", guest: "GSJ-Guest", office: "GSJ-Office", dmz: "GSJ-WEB" };
+const locVlan = (loc) => loc === "guest" ? guestV() : loc === "office" ? ssidVlan("office") : loc === "dmz" ? vlanOfHost("GSJ-WEB") : null;
+const locIp = (loc) => ({ internet: "100.64.12.7 (통신사)", guest: S.net.guestIso ? "192.168.20.31" : "192.168.10.88", office: "192.168.10.71", dmz: webIp() })[loc];
+function extOpen() {
+  const n = S.net, o = n.portfw.filter(f => f.on).map(f => [f.ext, f.ext === 443 ? "https" : f.ext === 3389 ? "ms-wbt-server" : "http-alt"]);
+  if (S.router.remote) o.push([8443, "https-alt"]);
+  const esp = n.devices.find(d => d.host === "ESP_3C21A9"); if (n.upnp && !isBlocked(esp)) o.push([49152, "unknown"]);
+  if (n.inboundDefault !== "deny") o.push([135, "msrpc"], [445, "microsoft-ds"]);
+  return o.sort((a, b) => a[0] - b[0]);
+}
+function reachable(loc, ip, port) {
+  // 반환: [도달 여부, 연습 힌트]
+  if (ip === "203.0.113.57") { if (loc !== "internet") return [true, "공인 IP — 내부에서 헤어핀"]; const ok = extOpen().some(([p]) => String(p) === String(port)); return [ok, ok ? "인바운드 허용(포트 포워딩·원격관리·기본 허용)" : "경계 방화벽 차단"]; }
+  const internal = /^192\.168\./.test(ip);
+  if (loc === "internet") return [false, internal ? "사설 IP는 인터넷에서 라우팅되지 않음" : "외부 주소"];
+  const src = locVlan(loc);
+  if (!internal) return [aclAllows(src, "internet", port), `vlan${src} → internet:${port} · ${aclHit(src, "internet", port)}`];
+  const d = S.net.devices.find(x => x.ip === ip); if (!d) return [false, "해당 IP 장치 없음"];
+  if (isBlocked(d)) return [false, "NAC 차단·격리 장치"];
+  const dst = vlanOfHost(d.host);
+  return [aclAllows(src, dst, port), `vlan${src} → vlan${dst}:${port} · ${aclHit(src, dst, port)}`];
+}
+function toolRun(line) {
+  const loc = $("toolLoc").value, lc = line.trim().toLowerCase(), J = !EX();
+  let m;
+  if (lc === "clear") { toolOut.length = 0; $("toolOut").innerHTML = ""; return; }
+  if (/^ip (a|addr)/.test(lc) || lc === "ifconfig") { tprint(`wlan0: inet ${locIp(loc)}${loc === "internet" ? "" : "/24"}  (${LOC[loc]})`); return; }
+  if ((m = lc.match(/^nmap(?:\s+-\S+)*\s+([\d.]+)$/))) {
+    const ip = m[1];
+    if (ip !== "203.0.113.57") { tprint(`Nmap scan report for ${ip}\n(실습에서는 회사 공인 IP 203.0.113.57 스캔만 지원)`); return; }
+    if (loc !== "internet") { tprint("Note: 외부 노출 확인은 '인터넷' 위치에서 스캔해야 정확합니다."); return; }
+    const o = extOpen();
+    tprint(`Starting Nmap ( https://nmap.org ) at ${new Date().toLocaleString("ko-KR")}\nNmap scan report for 203.0.113.57\nHost is up (0.012s latency).\n` +
+      (o.length ? `Not shown: ${1000 - o.length} filtered tcp ports\nPORT      STATE SERVICE\n` + o.map(([p, s]) => `${(p + "/tcp").padEnd(9)} open  ${s}`).join("\n") : "All 1000 scanned ports on 203.0.113.57 are in ignored states.\nNot shown: 1000 filtered tcp ports") +
+      `\n\nNmap done: 1 IP address (1 host up) scanned`);
+    lastTool = { reqs: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], name: "외부포트스캔", met: null };
     return;
-  } else return;
-  $("netToolMsg").textContent = "";
+  }
+  if ((m = lc.match(/^(?:nc|ncat)\s+(?:-\S+\s+)*([\d.]+)\s+(\d+)$/))) {
+    const [ok, why] = reachable(loc, m[1], m[2]);
+    tprint(ok ? `Connection to ${m[1]} ${m[2]} port [tcp] succeeded!` : `nc: connect to ${m[1]} port ${m[2]} (tcp) failed: Connection timed out`);
+    if (J) tprint(`(연습 힌트) ${why}`, "dim");
+    const toInternet = !/^192\.168\./.test(m[1]) && m[1] !== "203.0.113.57";
+    lastTool = loc === "internet" ? { reqs: ["SC.L1-b.1.x", "AC.L1-b.1.iii"], name: "외부접속시험" }
+      : toInternet ? { reqs: ["SC.L1-b.1.x"], name: `아웃바운드시험_${LOC[loc]}` }
+      : (loc === "guest" || loc === "dmz") ? { reqs: ["SC.L1-b.1.xi"], name: `분리시험_${LOC[loc]}` } : null;
+    return;
+  }
+  tprint(`bash: ${line.trim().split(/\s/)[0]}: command not found (지원: nmap, nc, ip addr, clear)`, "err");
+}
+bindHistory($("toolIn"), $("toolForm"), v => { tprint(`${$("toolPrompt").textContent} ${v}`, "cmd"); toolRun(v); });
+$("toolLoc").addEventListener("change", () => { $("toolPrompt").textContent = `tester@laptop(${LOC[$("toolLoc").value]}):~$`; tprint(`-- 접속 위치 변경: ${LOC[$("toolLoc").value]} (${locIp($("toolLoc").value)}) --`, "dim"); });
+$("toolCap").addEventListener("click", () => {
+  if (!lastTool) { $("toolMsg").className = "msg bad"; $("toolMsg").textContent = "증거로 남길 점검 결과가 없습니다 (스캔·분리·아웃바운드 시험 결과만 가능)."; return; }
+  const file = `${lastTool.name}_${today()}.txt`; addEvidence(file, lastTool.reqs, "점검용 노트북");
+  const [k, msg] = evMsg(lastTool.reqs, file); $("toolMsg").className = "msg " + k; $("toolMsg").textContent = msg;
 });
 
-/* ---------- 4. 설정·문서 작업 ---------- */
+/* ---------- Windows 설정 ---------- */
+function renderSettings() {
+  $("settingsMain").innerHTML = `<h2>Windows 업데이트</h2>
+    <div class="wu"><span class="big">${S.winUpdate ? "✅" : "🔄"}</span><div style="flex:1"><b>${S.winUpdate ? "최신 상태입니다" : "업데이트를 사용할 수 있음"}</b><br><span class="muted">마지막 확인: 오늘 ${S.winUpdate ? "10:12" : "08:00"}</span></div>
+      ${S.winUpdate ? "" : '<button class="btn" id="wuInstall">지금 설치</button>'}</div>
+    ${S.winUpdate ? "" : `<div class="panel"><div class="pb">2026-11 x64 기반 시스템용 Windows 11 누적 업데이트 (KB5131877)<br><span class="muted">상태: 다운로드 대기 중</span></div></div>`}
+    <div class="panel"><div class="pb"><div class="kv"><span>업데이트 기록</span><span>${S.winUpdate ? `KB5131877 (${today()}) · ` : ""}KB5094126 (2026-07-05) · KB5094135 (2026-07-05)</span><span>업데이트 일시 중지</span><span>사용 안 함</span></div></div></div>
+    <p><button class="btn ghost small" id="wuCap">📸 화면 캡처(증거)</button> <span class="msg" id="wuMsg"></span></p>`;
+}
+$("settingsMain").addEventListener("click", e => {
+  if (e.target.id === "wuInstall") { S.winUpdate = true; save(); refresh(); toast("업데이트를 설치했습니다. (재시작 완료)"); }
+  if (e.target.id === "wuCap") { const f = `Windows업데이트_${today()}.png`; addEvidence(f, ["SI.L1-b.1.xii"], "화면 캡처"); const [k, m] = evMsg(["SI.L1-b.1.xii"], f); $("wuMsg").className = "msg " + k; $("wuMsg").textContent = m; }
+});
+
+/* ---------- 메일 관리 센터 ---------- */
+let mailMsg = "";
+function renderMail() {
+  $("mailMain").innerHTML = `<div class="ph"><h2>사용자</h2><span class="crumbs">관리 › 사용자</span></div>
+    <div class="panel"><div class="pb" style="padding:0"><div class="tbl"><table><tr><th>이름</th><th>계정</th><th>상태</th><th>2단계 인증</th><th>마지막 로그인</th></tr>
+    ${Object.entries(S.mail).map(([u, m]) => `<tr><td>${m.name}</td><td class="ev">${u}@gsj.example</td>
+      <td><select data-mstate="${u}">${opt({ on: "활성", off: "로그인 차단" }, m.active ? "on" : "off")}</select></td>
+      <td><select data-mmfa="${u}">${opt({ off: "사용 안 함", recommended: "권장(선택)", required: "필수" }, m.mfa)}</select></td><td class="muted">${m.last}</td></tr>`).join("")}</table></div></div></div>
+    <div class="msg ok">${esc(mailMsg)}</div>`;
+}
+$("mailMain").addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.mstate) S.mail[el.dataset.mstate].active = el.value === "on";
+  else if (el.dataset.mmfa) S.mail[el.dataset.mmfa].mfa = el.value;
+  else return;
+  mailMsg = "변경 내용이 저장되었습니다."; save(); refresh();
+});
+$("mailCap").addEventListener("click", () => { const f = `메일관리_사용자_${today()}.png`; addEvidence(f, ["AC.L1-b.1.i", "IA.L1-b.1.vi"], "화면 캡처"); mailMsg = evMsg(["AC.L1-b.1.i", "IA.L1-b.1.vi"], f)[1]; renderMail(); });
+
+/* ---------- 문서함 ---------- */
 const QUIZ = {
-  ext: { doc: "extRule", q: "외부 시스템 연결 규칙으로 채택할 문장을 모두 고르세요.", items: [
-    ["FCI는 회사가 승인한 메일·공유 폴더로만 주고받는다", true],
-    ["개인 클라우드(개인 계정)에 FCI를 백업해도 된다", false],
-    ["개인 USB는 사용 금지, 회사 지급 USB만 사용한다", true],
-    ["집 PC에서 원격 데스크톱으로 사무실 PC에 접속해 작업한다", false],
-    ["외부 시스템 사용이 필요하면 대표 승인을 받고 목록에 기록한다", true],
-    ["발주처가 보낸 링크의 외부 파일 공유 사이트는 자유롭게 써도 된다", false]] },
-  post: { doc: "posting", q: "게시 승인 절차에 들어갈 문장을 모두 고르세요.", items: [
-    ["게시 전 FCI(계약 수량·일정·발주처 정보) 포함 여부를 검토한다", true],
-    ["\"○○사업 부품 2027년 3월 납품 예정\" 홍보글은 바로 게시해도 된다", false],
-    ["직원은 자유롭게 게시하고 문제 생기면 삭제한다", false],
-    ["FCI가 게시된 것을 발견하면 즉시 내리고 대표에게 보고한다", true],
+  ext: { doc: "extRule", q: "규칙으로 채택할 조항에 ☑ 하세요.", items: [
+    ["FCI는 회사가 승인한 메일·공유 폴더로만 주고받는다", true], ["개인 클라우드(개인 계정)에 FCI를 백업해도 된다", false],
+    ["개인 USB는 사용 금지, 회사 지급 USB만 사용한다", true], ["집 PC에서 원격 데스크톱으로 사무실 PC에 접속해 작업한다", false],
+    ["외부 시스템 사용이 필요하면 대표 승인을 받고 목록에 기록한다", true], ["발주처가 보낸 링크의 외부 파일 공유 사이트는 자유롭게 써도 된다", false]] },
+  post: { doc: "posting", q: "절차에 포함할 조항에 ☑ 하세요.", items: [
+    ["게시 전 FCI(계약 수량·일정·발주처 정보) 포함 여부를 검토한다", true], ["\"○○사업 부품 2027년 3월 납품 예정\" 홍보글은 바로 게시해도 된다", false],
+    ["직원은 자유롭게 게시하고 문제 생기면 삭제한다", false], ["FCI가 게시된 것을 발견하면 즉시 내리고 대표에게 보고한다", true],
     ["게시물 사진에 사무실 화이트보드·모니터가 찍혔는지 확인한다", true]] },
-  access: { doc: "access", q: "FCI 취급 구역에 혼자 출입할 수 있는 사람을 모두 고르세요.", items: [
+  access: { doc: "access", q: "FCI 취급 구역(사무실 2층)에 단독 출입을 허가할 사람에 ☑ 하세요.", items: [
     ["김대표", true], ["이과장", true], ["최사원", true], ["박대리 (10월 15일 퇴사)", false], ["청소 용역 직원", false], ["택배 기사", false]] },
-  visitor: { doc: "visitor", q: "발주처 담당자가 회의차 방문했습니다. 해야 할 일을 모두 고르세요.", items: [
-    ["신분 확인 후 방문자 출입 기록부에 성명·소속·목적·입실 시각 기록", true],
-    ["방문증 발급, 회의실까지 직원이 동행", true],
-    ["회의 전 사무실 PC 화면의 납품일정 파일을 닫음", true],
-    ["회의 중 직원이 잠시 자리를 비우면 방문자 혼자 사무실을 둘러보게 둠", false],
-    ["방문자가 노트북을 업무 Wi-Fi에 연결하도록 암호를 알려 줌", false],
-    ["퇴실 시 방문증 회수, 퇴실 시각 기록", true]] },
+  visitor: { doc: "visitor", q: "발주처 담당자 회의 방문 시 수행할 조항에 ☑ 하세요.", items: [
+    ["신분 확인 후 방문자 출입 기록부에 성명·소속·목적·입실 시각 기록", true], ["방문증 발급, 회의실까지 직원이 동행", true],
+    ["회의 전 사무실 PC 화면의 납품일정 파일을 닫음", true], ["회의 중 직원이 잠시 자리를 비우면 방문자 혼자 사무실을 둘러보게 둠", false],
+    ["방문자가 노트북을 업무 Wi-Fi에 연결하도록 암호를 알려 줌", false], ["퇴실 시 방문증 회수, 퇴실 시각 기록", true]] },
 };
 const CARDS = [["01", "김대표", "사용 중"], ["02", "이과장", "사용 중"], ["03", "최사원", "사용 중"], ["04", "박대리", "10월 15일 퇴사, 카드 미반납"],
   ["05", "청소 용역", "평일 07~08시, 직원 동행"], ["06", "예비", "금고 보관"], ["07", "예비", "11월 2일 최사원 분실 신고"]];
-const OPS = [
-  { key: "update", title: "Windows 업데이트", reqs: ["SI.L1-b.1.xii"], body: () => `
-      <p class="muted" style="margin:0 0 6px">마지막 설치: ${S.winUpdate ? today() : "2026-07-05"}</p>
-      <button class="btn small" data-act="winupdate" ${S.winUpdate ? "disabled" : ""}>업데이트 확인 및 설치</button>` },
-  { key: "mail", title: "업무 메일 관리", reqs: ["IA.L1-b.1.vi"], body: () => `
-      <label class="row"><input type="checkbox" data-act="mfa" ${S.mfa ? "checked" : ""}> <span>전 직원 2단계 인증 필수 적용</span></label>` },
-  { key: "ext", title: "외부 시스템 연결 규칙", reqs: ["AC.L1-b.1.iii"], body: () => quiz("ext") },
-  { key: "post", title: "공개 게시 승인 절차", reqs: ["AC.L1-b.1.iv"], body: () => `
-      <div style="margin-bottom:6px">게시 권한자 (직책·성명) <input type="text" id="postOwner" placeholder="직접 입력" style="width:160px" value="${esc(S.ans.postOwner || "")}"></div>` + quiz("post") },
-  { key: "map", title: "계정-사용자 대응표", reqs: ["IA.L1-b.1.v"], body: () => `
-      <p class="muted" style="margin:0 0 6px">PC의 계정마다 처리 방법을 정하세요.</p>` +
-      ["kim", "lee", "choi", "park", "office", "Guest"].map(a => `
-      <div style="margin:4px 0"><code>${a}</code> → <select data-map="${a}">${opt({ "": "선택", keep: "본인 전용으로 유지", disable: "비활성화", admin: "관리자로 지정" }, S.ans.map?.[a] || "")}</select></div>`).join("") +
-      `<button class="btn small" data-act="map">제출</button>` },
-  { key: "access", title: "출입 권한자 명단", reqs: ["PE.L1-b.1.viii"], body: () => quiz("access") },
-  { key: "visitor", title: "방문자 응대", reqs: ["PE.L1-b.1.ix"], body: () => quiz("visitor") },
-  { key: "cards", title: "출입카드 대장", reqs: ["PE.L1-b.1.ix"], body: () => `
-      <div class="tbl"><table style="font-size:.84rem"><tr><th>카드</th><th>사용자</th><th>비고</th></tr>${CARDS.map(c => `<tr><td>#${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`).join("")}</table></div>
-      <div style="margin-top:6px">정지할 카드 번호 <input type="text" id="cardNos" placeholder="예: 01, 02" style="width:140px" value="${esc(S.ans.cards || "")}"> <button class="btn small" data-act="cards">제출</button></div>` },
-  { key: "media", title: "매체 폐기 기록부", reqs: ["MP.L1-b.1.vii"], body: () => `
-      ${S.mediaLog.map(m => `<div class="ev">${esc(m.text)}</div>`).join("")}
-      <div style="margin-top:6px">매체 <input type="text" id="mId" placeholder="매체 식별번호" style="width:150px">
-      방법 <select id="mHow"><option value="">선택</option><option>완전삭제(덮어쓰기)</option><option>빠른 포맷</option><option>휴지통 비우기</option><option>물리파기</option></select>
-      처리자 <input type="text" id="mBy" placeholder="성명" style="width:80px"> 확인자 <input type="text" id="mChk" placeholder="성명" style="width:80px">
-      <button class="btn small" data-act="media">기록</button></div>` },
+const DOCS = [
+  { key: "ext", file: "외부시스템_연결규칙.hwp", title: "외부 시스템 연결 규칙", reqs: ["AC.L1-b.1.iii"] },
+  { key: "post", file: "공개게시_승인절차.hwp", title: "공개 게시 승인 절차", reqs: ["AC.L1-b.1.iv"] },
+  { key: "map", file: "계정_사용자_대응표.hwp", title: "계정 · 사용자 대응표", reqs: ["IA.L1-b.1.v"] },
+  { key: "access", file: "출입권한자_명단.hwp", title: "출입 권한자 명단", reqs: ["PE.L1-b.1.viii"] },
+  { key: "visitor", file: "방문자_응대절차.hwp", title: "방문자 응대 절차", reqs: ["PE.L1-b.1.ix"] },
+  { key: "cards", file: "출입카드_관리대장.hwp", title: "출입카드 관리대장", reqs: ["PE.L1-b.1.ix"] },
+  { key: "media", file: "매체_폐기기록부.hwp", title: "매체 폐기 기록부", reqs: ["MP.L1-b.1.vii"] },
 ];
-function quiz(key) {
-  const Q = QUIZ[key];
-  return `<p class="muted" style="margin:0 0 4px">${esc(Q.q)}</p>` +
-    S.perm[key].map(i => `<label class="row"><input type="checkbox" data-q="${key}" data-i="${i}" ${S.ans[key]?.[i] ? "checked" : ""}> <span>${esc(Q.items[i][0])}</span></label>`).join("") +
-    `<button class="btn small" data-quiz="${key}">제출</button>`;
+let docSel = "ext";
+const docMsgs = {};
+function docBody(key) {
+  if (QUIZ[key]) {
+    const Q = QUIZ[key];
+    return (key === "post" ? `<p>게시 권한자 (직책·성명): <input type="text" id="postOwner" style="width:180px" value="${esc(S.ans.postOwner || "")}"></p>` : "") +
+      `<p class="muted">${esc(Q.q)}</p><table class="form"><tr><th style="width:44px">채택</th><th>조항</th></tr>` +
+      S.perm[key].map((i, k) => `<tr><td style="text-align:center"><input type="checkbox" data-q="${key}" data-i="${i}" ${S.ans[key]?.[i] ? "checked" : ""} aria-label="조항 ${k + 1}"></td><td>${k + 1}. ${esc(Q.items[i][0])}</td></tr>`).join("") + "</table>";
+  }
+  if (key === "map") return `<p class="muted">KIM-PC의 로컬 계정마다 처리 방법을 정하세요.</p><table class="form"><tr><th>계정</th><th>처리</th></tr>` +
+    ["kim", "lee", "choi", "park", "office", "Guest"].map(a => `<tr><td class="ev">${a}</td><td><select data-map="${a}">${opt({ "": "선택", keep: "본인 전용으로 유지", disable: "비활성화", admin: "관리자로 지정" }, S.ans.map?.[a] || "")}</select></td></tr>`).join("") + "</table>";
+  if (key === "cards") return `<table class="form"><tr><th>카드</th><th>사용자</th><th>비고</th></tr>${CARDS.map(c => `<tr><td>#${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td></tr>`).join("")}</table>
+    <p>정지 처리할 카드 번호: <input type="text" id="cardNos" placeholder="예: 01, 02" style="width:160px" value="${esc(S.ans.cards || "")}"></p>`;
+  if (key === "media") return `<table class="form"><tr><th>일자</th><th>매체</th><th>방법</th><th>처리자</th><th>확인자</th></tr>
+    ${S.mediaLog.map(m => { const p = m.text.split(" | "); return `<tr>${p.map(x => `<td>${esc(x.replace(/^처리 |^확인 /, ""))}</td>`).join("")}</tr>`; }).join("")}
+    <tr><td>${today()}</td><td><input type="text" id="mId" placeholder="매체 식별번호" style="width:120px"></td>
+      <td><select id="mHow"><option value="">선택</option><option>완전삭제(덮어쓰기)</option><option>빠른 포맷</option><option>휴지통 비우기</option><option>물리파기</option></select></td>
+      <td><input type="text" id="mBy" placeholder="성명" style="width:70px"></td><td><input type="text" id="mChk" placeholder="성명" style="width:70px"></td></tr></table>`;
+  return "";
 }
-const opMsgs = {};
-function renderOps() {
+function renderDocs() {
   const X = EX();
-  $("ops").innerHTML = OPS.map(o => {
-    const done = !X && o.reqs.every(isMet);
-    return `<div class="card ${done ? "done" : ""}" data-op="${o.key}">
-      <h3>${esc(o.title)} ${done ? '<span class="pill ok">충족</span>' : ""}</h3>
-      ${X ? "" : `<div style="margin-bottom:6px">${o.reqs.map(r => `<span class="pill">${r}</span>`).join("")}</div>`}
-      ${o.body()}
-      <div style="margin-top:8px"><button class="btn ghost small" data-ev="${o.key}">📸 증거 저장</button></div>
-      <div class="msg ${opMsgs[o.key]?.[0] || ""}">${opMsgs[o.key]?.[1] || ""}</div></div>`;
-  }).join("");
+  $("docList").innerHTML = `<div class="muted" style="padding:4px 12px;font-size:.75rem">\\\\GSJ-NAS\\보안문서</div>` + DOCS.map(d => `<button data-doc="${d.key}" aria-current="${d.key === docSel}">📄 ${d.file}${!X && d.reqs.every(isMet) ? " ✓" : ""}</button>`).join("");
+  const d = DOCS.find(x => x.key === docSel), m = docMsgs[docSel];
+  $("docPaper").innerHTML = `<table class="sign"><tr><th>담당</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table>
+    <h2 style="letter-spacing:.15em">${d.title}</h2><div class="meta">가상정밀(주) · 보안문서 · ${d.file}${X ? "" : ` · 관련 요구사항 ${d.reqs.join(", ")}`}</div>
+    ${docBody(docSel)}
+    <p style="text-align:right;margin-top:14px"><button class="btn ghost small" data-dcap="1">📸 문서 캡처(증거)</button> <button class="btn" data-dsub="1">${docSel === "media" ? "기록 추가" : "결재 상신(제출)"}</button></p>
+    <div class="msg ${m?.[0] || ""}">${m?.[1] || ""}</div>`;
 }
-$("ops").addEventListener("change", e => { if (e.target.dataset.act === "mfa") { S.mfa = e.target.checked; save(); refresh(); } });
-// 평가 모드: 제출만 받고 정답 여부는 알려 주지 않는다. 연습 모드: 정오와 틀린 개수를 알려 주고 1점 감점
 function judged(key, ok, wrongTxt) {
-  if (EX()) { opMsgs[key] = ["ok", "제출했습니다. 평가 모드에서는 SPRS 제출 후 결과 보고서에서 채점합니다. 다시 제출하면 덮어씁니다."]; return; }
-  if (ok) opMsgs[key] = ["ok", "정확합니다. 📸 증거 저장을 누르세요."];
-  else { opMsgs[key] = ["bad", wrongTxt]; pen(1, `문서 작업 오답: ${key}`); }
+  if (EX()) { docMsgs[key] = ["ok", "결재 상신했습니다. 평가 모드에서는 SPRS 제출 후 결과 보고서에서 채점합니다. 다시 상신하면 덮어씁니다."]; return; }
+  if (ok) docMsgs[key] = ["ok", "정확합니다. 문서 캡처로 증거를 남기세요."];
+  else { docMsgs[key] = ["bad", wrongTxt]; pen(1, `문서 작업 오답: ${key}`); }
 }
-$("ops").addEventListener("click", e => {
-  const t = e.target, card = t.closest(".card"); if (!card) return;
-  const key = card.dataset.op;
-  if (t.dataset.act === "winupdate") { S.winUpdate = true; opMsgs[key] = ["ok", "누적 업데이트 KB5131877 설치 완료"]; }
-  else if (t.dataset.quiz) {
-    const k = t.dataset.quiz, Q = QUIZ[k];
-    const got = Object.fromEntries([...card.querySelectorAll(`[data-q="${k}"]`)].map(c => [c.dataset.i, c.checked]));
+document.querySelector('[data-win="docs"]').addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.doc) { docSel = t.dataset.doc; renderDocs(); return; }
+  const key = docSel, d = DOCS.find(x => x.key === key);
+  if (t.dataset.dcap) { const f = `${d.file.replace(".hwp", "")}_${today()}.pdf`; addEvidence(f, d.reqs, "문서 캡처"); docMsgs[key] = evMsg(d.reqs, f); renderDocs(); return; }
+  if (!t.dataset.dsub) return;
+  const paper = $("docPaper");
+  if (QUIZ[key]) {
+    const Q = QUIZ[key];
+    const got = Object.fromEntries([...paper.querySelectorAll(`[data-q="${key}"]`)].map(c => [c.dataset.i, c.checked]));
     let ok = Q.items.every((it, i) => it[1] === !!got[i]);
     const wrongN = Q.items.filter((it, i) => it[1] !== !!got[i]).length;
-    S.ans[k] = got;
-    if (k === "post") { const owner = ($("postOwner").value || "").trim(); S.ans.postOwner = owner; if (!/대표/.test(owner)) ok = false; }
+    S.ans[key] = got;
+    if (key === "post") { const owner = ($("postOwner").value || "").trim(); S.ans.postOwner = owner; if (!/대표/.test(owner)) ok = false; }
     S.docs[Q.doc] = ok;
-    judged(key, ok, `오답입니다 (${wrongN}개 문장 판단이 틀림${k === "post" && !/대표/.test($("postOwner").value) ? ", 게시 권한자 확인" : ""}).`);
-  } else if (t.dataset.act === "map") {
+    judged(key, ok, `반려: ${wrongN}개 조항 판단이 틀렸습니다${key === "post" && !/대표/.test(S.ans.postOwner) ? ", 게시 권한자를 확인하세요" : ""}.`);
+  } else if (key === "map") {
     const want = { kim: "keep", lee: "keep", choi: "keep", park: "disable", office: "disable", Guest: "disable" };
-    const got = Object.fromEntries([...card.querySelectorAll("[data-map]")].map(s => [s.dataset.map, s.value]));
+    const got = Object.fromEntries([...paper.querySelectorAll("[data-map]")].map(s => [s.dataset.map, s.value]));
     S.ans.map = got;
-    if (Object.values(got).some(v => !v)) { opMsgs[key] = ["bad", "모든 계정의 처리 방법을 고르세요."]; }
-    else { const ok = Object.keys(want).every(k => got[k] === want[k]); S.docs.acctMap = ok; judged(key, ok, "오답입니다. 계정은 한 사람에게만 대응되어야 하고, 업무 계정은 관리자가 아니어야 합니다."); }
-  } else if (t.dataset.act === "cards") {
+    if (Object.values(got).some(v => !v)) docMsgs[key] = ["bad", "모든 계정의 처리 방법을 고르세요."];
+    else { const ok = Object.keys(want).every(k => got[k] === want[k]); S.docs.acctMap = ok; judged(key, ok, "반려: 계정은 한 사람에게만 대응되어야 하고, 업무 계정은 관리자가 아니어야 합니다."); }
+  } else if (key === "cards") {
     S.ans.cards = $("cardNos").value;
-    const nos = new Set((($("cardNos").value || "").match(/\d+/g) || []).map(x => String(+x).padStart(2, "0")));
-    if (!nos.size) { opMsgs[key] = ["bad", "카드 번호를 입력하세요."]; }
-    else { const ok = nos.size === 2 && nos.has("04") && nos.has("07"); S.docs.cards = ok; judged(key, ok, "오답입니다. 정지 대상이 빠졌거나 정지하면 안 되는 카드가 있습니다."); }
-  } else if (t.dataset.act === "media") {
+    const nos = new Set(((S.ans.cards || "").match(/\d+/g) || []).map(x => String(+x).padStart(2, "0")));
+    if (!nos.size) docMsgs[key] = ["bad", "카드 번호를 입력하세요."];
+    else { const ok = nos.size === 2 && nos.has("04") && nos.has("07"); S.docs.cards = ok; judged(key, ok, "반려: 정지 대상이 빠졌거나 정지하면 안 되는 카드가 있습니다."); }
+  } else if (key === "media") {
     const id = $("mId").value.trim(), how = $("mHow").value, by = $("mBy").value.trim(), chk = $("mChk").value.trim();
-    if (!id || !how || !by || !chk) opMsgs[key] = ["bad", "매체, 방법, 처리자, 확인자를 모두 입력하세요."];
+    if (!id || !how || !by || !chk) docMsgs[key] = ["bad", "매체, 방법, 처리자, 확인자를 모두 입력하세요."];
     else {
       const valid = /완전삭제|물리파기/.test(how) && by !== chk && (S.cipherE || how === "물리파기");
       S.mediaLog.push({ text: `${today()} | ${id} | ${how} | 처리 ${by} | 확인 ${chk}`, valid });
-      if (EX()) opMsgs[key] = ["ok", "기록했습니다."];
-      else if (valid) opMsgs[key] = ["ok", "유효한 기록입니다."];
-      else { opMsgs[key] = ["warn", "기록했지만 유효하지 않습니다: " + [!/완전삭제|물리파기/.test(how) && "복구 가능한 방법", by === chk && "처리자=확인자", !S.cipherE && how !== "물리파기" && "실제 완전 삭제 미실행"].filter(Boolean).join(", ")]; pen(1, "매체 폐기 기록 오류"); }
+      if (EX()) docMsgs[key] = ["ok", "기록을 추가했습니다."];
+      else if (valid) docMsgs[key] = ["ok", "유효한 기록입니다."];
+      else { docMsgs[key] = ["warn", "기록했지만 유효하지 않습니다: " + [!/완전삭제|물리파기/.test(how) && "복구 가능한 방법", by === chk && "처리자=확인자", !S.cipherE && how !== "물리파기" && "실제 완전 삭제 미실행"].filter(Boolean).join(", ")]; pen(1, "매체 폐기 기록 오류"); }
     }
-  } else if (t.dataset.ev) {
-    const o = OPS.find(x => x.key === t.dataset.ev), file = `${o.title.replace(/\s/g, "_")}_${today()}.png`;
-    addEvidence(file, o.reqs, "화면 캡처"); opMsgs[key] = evMsg(o.reqs, file);
-  } else return;
+  }
   save(); refresh();
 });
 
-/* ---------- 5. 자체평가 ---------- */
+/* ---------- 자체평가 ---------- */
 function renderAssess() {
   const X = EX();
-  $("assessSub").textContent = X ? "요구사항마다 충족(MET) 여부를 판정하세요. 평가 모드에는 중간 채점이 없습니다. 판정과 증거는 SPRS 제출 후 결과 보고서에서 채점됩니다."
+  $("assessSub").textContent = X ? "평가자: 보안 담당자 · 요구사항마다 충족(MET) 여부를 판정하고 근거 증거를 확인하세요. 채점은 SPRS 제출 후 결과 보고서에서 합니다."
     : "요구사항마다 충족(MET) 여부를 판정하세요. 채점하면 실제 상태와 비교해 알려 줍니다(재채점 시 1점 감점).";
   $("gradeWrap").hidden = X;
   $("assessTbl").innerHTML = `<tr><th>식별자</th><th>요구사항</th><th>판정</th><th>증거</th></tr>` + REQS.map(r => {
     const ev = S.evidence.filter(e => e.req === r.id), good = ev.filter(e => e.met).length;
     return `<tr><td><b>${r.id}</b><br><span class="muted">(${r.nist})</span></td><td>${esc(r.name)}</td>
-      <td><select data-as="${r.id}"><option value="">-</option><option value="MET" ${S.assess[r.id] === "MET" ? "selected" : ""}>MET</option><option value="NOT" ${S.assess[r.id] === "NOT" ? "selected" : ""}>NOT MET</option></select></td>
-      <td>${ev.length ? `<span class="pill ${X || good ? "" : "warn"}">${ev.length}건${!X && !good ? " (모두 조치 전)" : ""}</span><div class="ev">${ev.slice(-2).map(e => esc(e.file)).join("<br>")}</div>` : '<span class="pill bad">없음</span>'}</td></tr>`;
+      <td><select data-as="${r.id}">${opt({ "": "-", MET: "MET", NOT: "NOT MET" }, S.assess[r.id] || "")}</select></td>
+      <td>${ev.length ? `<span class="tag ${X || good ? "" : "warn"}">${ev.length}건${!X && !good ? " (모두 조치 전)" : ""}</span><div class="ev">${ev.slice(-2).map(e => esc(e.file)).join("<br>")}</div>` : '<span class="tag bad">없음</span>'}</td></tr>`;
   }).join("");
 }
 $("assessTbl").addEventListener("change", e => { if (e.target.dataset.as) { S.assess[e.target.dataset.as] = e.target.value; save(); } });
@@ -1215,31 +1279,27 @@ $("grade").addEventListener("click", () => {
   refresh();
 });
 
-/* ---------- 6. 제출과 결과 보고서 ---------- */
+/* ---------- SPRS 제출과 결과 보고서 ---------- */
 function report() {
-  const rows = REQS.map(r => {
-    const actual = isMet(r.id), mine = S.assess[r.id], goodEv = S.evidence.filter(e => e.req === r.id && e.met).length;
-    return { r, actual, mine, goodEv, why: problems(r.id) };
-  });
+  const rows = REQS.map(r => ({ r, actual: isMet(r.id), mine: S.assess[r.id], goodEv: S.evidence.filter(e => e.req === r.id && e.met).length, why: problems(r.id) }));
   const sw = scopeWrong(S.scopePick);
   const items = [
     ...S.pen.map(p => [p.why, p.pts]),
-    ...(S.scopePick ? sw.map(x => [`범위 오류: ${x.a.n.split(" — ")[0]} (${x.a.in ? "포함" : "제외"}해야 함)`, 2]) : [["범위 정의 미확정", 10]]),
+    ...(S.scopePick ? sw.map(x => [`범위 오류: ${x.a.n} (${x.a.in ? "포함" : "제외"}해야 함)`, 2]) : [["범위 정의 미확정", 10]]),
     ...rows.filter(x => !x.actual).map(x => [`미충족 상태로 MET 확인·제출 (허위 확인 위험): ${x.r.id}`, 5]),
     ...rows.filter(x => x.actual && !x.goodEv).map(x => [`조치 후 증거 없음: ${x.r.id}`, 2]),
     ...($("sLevel").value !== "Level 1 (Self)" ? [["CMMC 수준 오기입", 3]] : []),
   ];
-  const lost = items.reduce((a, [, p]) => a + p, 0), score = Math.max(0, 100 - lost);
+  const score = Math.max(0, 100 - items.reduce((a, [, p]) => a + p, 0));
   const grade = score >= 90 ? "우수" : score >= 80 ? "양호" : score >= 70 ? "보통" : "재교육 필요";
   const mins = Math.max(1, Math.round((Date.now() - S.started) / 60000));
-  return `<div class="card" style="margin-top:10px"><h3>결과 보고서 — ${score}점 (${grade})</h3>
-    <p class="muted">${EX() ? "평가 모드" : "연습 모드"} · 소요 약 ${mins}분 · 증거 ${S.evidence.length}건 · 실제 충족 ${rows.filter(x => x.actual).length}/15</p>
+  return `<div class="panel" style="margin-top:12px"><h3>결과 보고서 — ${score}점 (${grade})</h3><div class="pb">
+    <p class="muted" style="margin-top:0">${EX() ? "평가 모드" : "연습 모드"} · 소요 약 ${mins}분 · 증거 ${S.evidence.length}건 · 실제 충족 ${rows.filter(x => x.actual).length}/15</p>
     <div class="tbl"><table><tr><th>요구사항</th><th>실제</th><th>자체 판정</th><th>조치 후 증거</th><th>미충족 사유</th></tr>
-    ${rows.map(x => `<tr><td><b>${x.r.id}</b></td><td>${x.actual ? '<span class="pill ok">충족</span>' : '<span class="pill bad">미충족</span>'}</td>
-      <td>${x.mine || "-"}</td><td>${x.goodEv}건</td><td class="muted">${esc(x.why.join(", "))}</td></tr>`).join("")}</table></div>
-    <h3 style="margin-top:12px">감점 내역</h3>
-    ${items.length ? `<ul style="margin:0;padding-left:18px;font-size:.9rem">${items.map(([w, p]) => `<li>-${p} ${esc(w)}</li>`).join("")}</ul>` : '<p class="muted">감점 없음</p>'}
-    <p class="muted" style="margin-top:10px">다시 하려면 0 안내 탭에서 새 시나리오를 시작하세요. 결함 위치가 바뀝니다.</p></div>`;
+    ${rows.map(x => `<tr><td><b>${x.r.id}</b></td><td>${x.actual ? '<span class="tag ok">충족</span>' : '<span class="tag bad">미충족</span>'}</td><td>${x.mine || "-"}</td><td>${x.goodEv}건</td><td class="muted">${esc(x.why.join(", "))}</td></tr>`).join("")}</table></div>
+    <h3 style="margin-top:12px;font-size:.9rem">감점 내역</h3>
+    ${items.length ? `<ul style="margin:0;padding-left:18px">${items.map(([w, p]) => `<li>-${p} ${esc(w)}</li>`).join("")}</ul>` : '<p class="muted">감점 없음</p>'}
+    <p class="muted" style="margin-top:10px">다시 하려면 업무 지시서에서 새 시나리오를 시작하세요. 결함 위치가 바뀝니다.</p></div></div>`;
 }
 $("submitBtn").addEventListener("click", () => {
   if (S.submitted) { $("submitMsg").innerHTML = `<div class="msg warn">이미 제출했습니다.</div>` + report(); return; }
@@ -1248,27 +1308,25 @@ $("submitBtn").addEventListener("click", () => {
   if (!$("sDate").value) form.push("CMMC 상태 일자를 입력하세요.");
   if (!/^[0-9A-Z]{5}$/i.test($("sCage").value.trim())) form.push("CAGE 코드는 영문·숫자 5자리입니다 (가상 값).");
   if (!$("sScope").value.trim()) form.push("평가 범위 요약을 입력하세요.");
-  if (REQS.some(r => !S.assess[r.id])) form.push("자체평가에서 15개를 모두 판정하세요.");
-  else if (REQS.some(r => S.assess[r.id] !== "MET")) form.push("레벨 1은 15개 모두 MET이어야 제출할 수 있습니다 (POA&amp;M 불허). 고친 뒤 다시 판정하세요.");
+  if (REQS.some(r => !S.assess[r.id])) form.push("자체평가 결과표에서 15개를 모두 판정하세요.");
+  else if (REQS.some(r => S.assess[r.id] !== "MET")) form.push("레벨 1은 15개 모두 MET이어야 제출할 수 있습니다 (POA&amp;M 불허).");
   if (!$("sAffirm").checked) form.push("확인 책임자 확인에 체크하세요.");
-  if (form.length) { $("submitMsg").innerHTML = `<div class="msg bad">제출할 수 없습니다.</div><ul class="msg">${form.map(x => `<li>${x}</li>`).join("")}</ul>`; return; }
+  if (form.length) { $("submitMsg").innerHTML = `<div class="msg bad">입력 오류로 제출할 수 없습니다.</div><ul class="msg">${form.map(x => `<li>${x}</li>`).join("")}</ul>`; return; }
   if (!EX()) {
     const p = [];
     if (S.scope !== true) p.push("범위 정의를 정확히 완료하지 않았습니다.");
     if ($("sLevel").value !== "Level 1 (Self)") p.push("CMMC 수준은 Level 1 (Self)입니다.");
-    const notMet = REQS.filter(r => !isMet(r.id));
-    if (notMet.length) p.push(`실제 미충족 ${notMet.length}개: ${notMet.map(r => r.id).join(", ")}`);
-    const noEv = REQS.filter(r => !S.evidence.some(e => e.req === r.id && e.met));
-    if (noEv.length) p.push(`조치 후 증거가 없는 요구사항: ${noEv.map(r => r.id).join(", ")}`);
+    const notMet = REQS.filter(r => !isMet(r.id)); if (notMet.length) p.push(`실제 미충족 ${notMet.length}개: ${notMet.map(r => r.id).join(", ")}`);
+    const noEv = REQS.filter(r => !S.evidence.some(e => e.req === r.id && e.met)); if (noEv.length) p.push(`조치 후 증거가 없는 요구사항: ${noEv.map(r => r.id).join(", ")}`);
     if (p.length) { pen(1, "연습 모드 제출 거부"); $("submitMsg").innerHTML = `<div class="msg bad">(연습 모드) 이대로 제출하면 허위 확인이 됩니다.</div><ul class="msg">${p.map(x => `<li>${x}</li>`).join("")}</ul>`; refresh(); return; }
   }
   S.submitted = { date: $("sDate").value, cage: $("sCage").value.toUpperCase() };
   save(); refresh();
-  $("submitMsg").innerHTML = `<div class="msg ok">SPRS 제출 완료 (모의) — Level 1 (Self), 상태 일자 ${esc(S.submitted.date)}, CAGE ${esc(S.submitted.cage)}</div>` + report();
+  $("submitMsg").innerHTML = `<div class="msg ok">제출 완료 (모의) — Level 1 (Self) · 상태 일자 ${esc(S.submitted.date)} · CAGE ${esc(S.submitted.cage)}</div>` + report();
 });
 
 /* ---------- 시작 ---------- */
-banner(); cliBanner(); cliPrompt(); renderScope(); refresh(); finish();
+banner(); cliBanner(); cliPrompt(); toolBanner(); renderScope(); refresh(); finish(); openApp("intro");
 </script>
 </body>
 </html>
