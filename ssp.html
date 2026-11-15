@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아키텍처·SSP 실습</title>
+<meta name="description" content="CUI 엔클레이브 아키텍처를 설계하고 자산 분류·범위 경계·FCI/CUI 흐름·외부 연결·운영 근거·주기와 소유자를 담은 SSP를 작성하는 CMMC 레벨 2 준비 실습">
+<style>
+:root{--bg:#e9edf1;--card:#fff;--ink:#1c232b;--muted:#5f6b77;--line:#d4dbe2;--accent:#2563a8;--soft:#e3edf8;--ok:#1f7a45;--ok-soft:#e1f3e8;--bad:#b3261e;--bad-soft:#fbe9e7;--warn:#9a5a12;--warn-soft:#f8ecd9;--desk:#2c3e50;--title:#f3f5f7;--paper:#fff;
+  --c-cui:#c0392b;--c-spa:#2563a8;--c-crma:#b7791f;--c-spec:#7b4fb0;--c-out:#8a949e;--f-fci:#1e88e5;--f-cui:#d32f2f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--card:#1c2229;--ink:#e3e8ee;--muted:#98a4b0;--line:#2e3740;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--title:#232a31;--paper:#20262d;--c-cui:#f2867c;--c-spa:#7fb0e0;--c-crma:#e0a35a;--c-spec:#c3a2ee;--c-out:#7b8691;--f-fci:#64b5f6;--f-cui:#ef6c6c}}
+:root[data-theme="dark"]{--bg:#14181d;--card:#1c2229;--ink:#e3e8ee;--muted:#98a4b0;--line:#2e3740;--accent:#7fb0e0;--soft:#1f2c38;--ok:#7cc79a;--ok-soft:#1d3226;--bad:#f2867c;--bad-soft:#3a1f1c;--warn:#e0a35a;--warn-soft:#3a2c1a;--title:#232a31;--paper:#20262d;--c-cui:#f2867c;--c-spa:#7fb0e0;--c-crma:#e0a35a;--c-spec:#c3a2ee;--c-out:#7b8691;--f-fci:#64b5f6;--f-cui:#ef6c6c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 14px}
+.topbar{background:var(--desk);color:#e8eef4}
+.topbar .wrap{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding-top:10px;padding-bottom:10px}
+.topbar h1{font-size:1.05rem;margin:0;margin-right:auto}
+.topbar h1 small{display:block;font-weight:400;font-size:.78rem;color:#aebdcc}
+.topbar a{color:#cfe2f5}
+.chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;font-size:.8rem;line-height:1.3}
+.chip b{display:block;font-size:.95rem}
+.dock{background:#1b2733;position:sticky;top:0;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.dock .wrap{display:flex;flex-wrap:wrap;gap:2px 4px;padding-top:6px;padding-bottom:6px}
+.dock button{font:inherit;font-size:.82rem;color:#d7e1ea;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.dock button:hover{background:rgba(255,255,255,.08)}
+.dock button[aria-pressed="true"]{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+main{padding:16px 0 50px}
+.win{border:1px solid #9aa7b4;border-radius:8px;overflow:hidden;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.win[hidden]{display:none}
+.wt{display:flex;align-items:center;gap:8px;height:34px;padding:0 0 0 12px;background:var(--title);border-bottom:1px solid var(--line);font-size:.83rem}
+.wt .ti{font-weight:600;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt .ctl{display:flex;height:100%}
+.wt .ctl span{width:42px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.wb{padding:14px 16px}
+.paperwrap{background:#8a949e;padding:22px}
+.paper{background:var(--paper);max-width:1000px;margin:0 auto;padding:30px 36px;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:.87rem}
+.paper h2{text-align:center;font-size:1.2rem;letter-spacing:.2em;margin:4px 0 16px}
+.paper h3{font-size:.95rem;margin:20px 0 6px;border-bottom:2px solid var(--ink);padding-bottom:3px}
+.sign{float:right;border-collapse:collapse;margin:-8px 0 10px 10px;font-size:.75rem;width:auto}
+.sign td,.sign th{border:1px solid #777;text-align:center;padding:2px 10px;min-width:58px}
+.sign td{height:40px}
+.meta{clear:both;font-size:.8rem;color:var(--muted);margin-bottom:10px}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem;background:var(--card)}
+th,td{text-align:left;padding:5px 7px;border:1px solid var(--line);vertical-align:middle}
+th{background:var(--title);white-space:nowrap;font-weight:600}
+.paper table th,.paper table td{border-color:#999}
+select,input[type=text],input[type=date],textarea{font:inherit;font-size:.82rem;color:inherit;background:var(--card);border:1px solid #b6c0ca;border-radius:4px;padding:3px 5px;max-width:100%}
+textarea{width:100%;min-height:54px;resize:vertical}
+td select{width:100%}
+.btn{font:inherit;font-size:.82rem;border-radius:4px;padding:5px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.muted{color:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 10px;color:var(--muted);font-size:.85rem;margin:8px 0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--muted);margin:6px 0}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:3px;padding:1px 7px;background:var(--soft);color:var(--accent)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.score div{background:var(--title);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:.8rem}
+.score b{display:block;font-size:1.2rem}
+.finds li{margin:4px 0}
+.mode{display:flex;gap:10px;flex-wrap:wrap}
+.mode label{flex:1;min-width:230px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer}
+.mode label:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.msg{margin-top:6px;font-size:.84rem}
+.msg.ok{color:var(--ok)}
+footer{color:var(--muted);font-size:.78rem;padding:8px 0 30px}
+@media print{.topbar,.dock,footer,.noprint,.win:not(#sspWin){display:none!important}#sspWin{display:block!important;border:0;box-shadow:none}.paperwrap{background:none;padding:0}.paper{box-shadow:none}select,input,textarea{border:0;appearance:none;background:none}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">
+  <h1>가상정밀(주) — CUI 엔클레이브 아키텍처 설계 · SSP 작성<small>CMMC 레벨 2 준비 실습 · 교육용 가상 · <a href="index.html">레벨 1 점검 시뮬레이터로 돌아가기</a></small></h1>
+  <div class="chip"><b id="cMode">평가</b>모드</div>
+  <div class="chip"><b id="cDone">0%</b>입력 진행</div>
+  <div class="chip"><b id="cScore">—</b>심사 점수</div>
+</div></div>
+<nav class="dock"><div class="wrap">
+  <button data-app="brief">📋 과제 지시서</button>
+  <button data-app="assets">🧱 자산·범위</button>
+  <button data-app="arch">🗺️ 아키텍처도</button>
+  <button data-app="flow">🔀 FCI·CUI 흐름</button>
+  <button data-app="ext">🔗 외부 연결</button>
+  <button data-app="ssp">📝 SSP 편집기</button>
+  <button data-app="review">🔎 심사 요청</button>
+</div></nav>
+
+<main class="wrap">
+
+<section class="win" data-win="brief">
+  <div class="wt"><span>📋</span><span class="ti">과제지시_CUI엔클레이브.hwp — 문서 보기</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="paperwrap"><div class="paper">
+    <table class="sign"><tr><th>담당</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td>김대표</td></tr></table>
+    <h2>과 제 지 시 서</h2>
+    <div class="meta">가상정밀-2026-121 · 수신: 보안 담당자 · 발신: 대표이사</div>
+    <p><b>1. 배경</b> — 당사는 국방 부품 정밀가공 신규 계약을 수주하여 발주처로부터 <b>CUI(통제 대상 기술도면)</b>를 받게 되었다. 계약 조건에 따라 CMMC 레벨 2(NIST SP 800-171 110개 요구사항)를 준비한다. 기존 납품일정 등 <b>FCI</b> 업무는 그대로 유지한다.</p>
+    <p><b>2. 방침</b> — 회사 전체를 레벨 2로 올리지 않고, 도면을 다루는 장비만 모은 <b>CUI 엔클레이브</b>를 만들어 평가 범위를 줄인다. 엔클레이브는 게이트웨이(GSJ-GW)의 VLAN과 ACL로 다른 망과 분리한다.</p>
+    <p><b>3. 작업</b></p>
+    <ol>
+      <li><b>자산·범위</b>: 모든 자산을 5개 범주로 분류하고, 배치할 구역(VLAN), 소유자, 범위 밖·위험 관리·특수 자산의 <b>운영 근거</b>를 정한다.</li>
+      <li><b>아키텍처도</b>: 분류 결과로 그려지는 구성도에서 <b>평가 범위 경계</b>를 확인한다.</li>
+      <li><b>FCI·CUI 흐름</b>: 두 정보가 어디서 들어와 어디서 처리·저장·전달되는지 단계별로 정한다.</li>
+      <li><b>외부 연결</b>: 회사 밖 서비스마다 유형, 다루는 데이터, 필수 조건, 연결 보호 방식을 정한다.</li>
+      <li><b>SSP</b>: 시스템 식별, <b>보호 업무</b>, 경계 설명을 쓰고, 핵심 요구사항 10개의 구현 설명·<b>운영 근거</b>·<b>소유자</b>·<b>주기</b>를 채운 뒤 승인한다.</li>
+      <li><b>심사 요청</b>: 내부 심사를 받아 지적 사항을 보완한다.</li>
+    </ol>
+    <p><b>4. 참고 — 현황</b></p>
+    <ul>
+      <li>담당자: 김대표(대표·시스템 소유자), 이과장(설계팀장), 최사원(보안 담당), 정반장(생산), 한대리(영업), 외부 MSP(장비 원격 관리 업체)</li>
+      <li>도면은 발주처 기술자료 포털에서 CAD-WS01로 내려받아 수정하고, 도면 전용 저장소에 보관하며, 도면실 프린터로 출력하고, 가공 설비 CNC-01에 USB로 넘긴다. 도면 저장소는 매일 밤 클라우드에 백업한다.</li>
+      <li>발주처와의 도면 메일은 클라우드 메일의 <b>CUI 전용 메일함</b>으로만 주고받으며, 이 메일함은 CAD-WS01에서만 접속된다.</li>
+      <li>납품일정(FCI)은 클라우드 메일로 받아 업무 PC에서 작성하고 업무 NAS(GSJ-NAS)에 저장한 뒤 메일로 회신한다.</li>
+      <li>영업 노트북은 업무망에서 일반 메일을 쓴다. 정책상 도면 취급은 금지지만, 메일 첨부로 도면을 받는 것을 기술적으로 막을 수는 없다.</li>
+    </ul>
+    <div style="border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-top:14px" class="noprint">
+      <b>심사 방식</b>
+      <div class="mode" style="margin-top:6px">
+        <label><input type="radio" name="mode" value="exam"> <b>평가</b> — 심사 요청 시 영역별 점수만. 최종 제출 후 지적 사항 공개</label>
+        <label><input type="radio" name="mode" value="practice"> <b>연습</b> — 심사 요청 때마다 지적 사항과 근거를 바로 보여 줌</label>
+      </div>
+      <p style="margin:8px 0 0"><button class="btn ghost" id="resetBtn">입력 내용 모두 지우고 다시 시작</button></p>
+    </div>
+  </div></div>
+</section>
+
+<section class="win" data-win="assets" hidden>
+  <div class="wt"><span>🧱</span><span class="ti">자산 대장 · 범위 분류 — CMMC_자산목록.xlsx</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <div class="legend"><span><i class="dot" style="background:var(--c-cui)"></i>CUI 자산 — CUI를 처리·저장·전송</span><span><i class="dot" style="background:var(--c-spa)"></i>SPA — 범위에 보안 기능 제공</span><span><i class="dot" style="background:var(--c-crma)"></i>CRMA — 접근 가능하나 정책상 사용 안 함</span><span><i class="dot" style="background:var(--c-spec)"></i>특수 자산 — OT·IoT 등 표준 보안 적용 곤란</span><span><i class="dot" style="background:var(--c-out)"></i>범위 밖 — CUI·SPD에 접근·영향 불가</span></div>
+    <div class="tbl"><table id="assetTbl"></table></div>
+    <p class="note">운영 근거는 범위 밖·CRMA·특수 자산에만 씁니다. 범위 밖 자산은 CUI에 접근할 수 없음을 증명할 수 있어야 합니다.</p>
+  </div>
+</section>
+
+<section class="win" data-win="arch" hidden>
+  <div class="wt"><span>🗺️</span><span class="ti">아키텍처도 — 자산 분류·흐름 입력으로 자동 작성</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <div class="legend"><span><i class="dot" style="background:var(--c-cui)"></i>CUI</span><span><i class="dot" style="background:var(--c-spa)"></i>SPA</span><span><i class="dot" style="background:var(--c-crma)"></i>CRMA</span><span><i class="dot" style="background:var(--c-spec)"></i>특수</span><span><i class="dot" style="background:var(--c-out)"></i>범위 밖</span><span>— 파랑 실선: FCI 흐름 · 빨강 실선: CUI 흐름 · 주황 점선: 평가 범위 경계</span></div>
+    <div id="diagram"></div>
+  </div>
+</section>
+
+<section class="win" data-win="flow" hidden>
+  <div class="wt"><span>🔀</span><span class="ti">데이터 흐름 정의 — FCI · CUI</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <p class="muted" style="margin-top:0">단계마다 정보가 머무르거나 지나가는 자산·외부 서비스를 고르세요. 결과는 아키텍처도와 SSP에 반영됩니다.</p>
+    <div class="tbl"><table id="flowTbl"></table></div>
+  </div>
+</section>
+
+<section class="win" data-win="ext" hidden>
+  <div class="wt"><span>🔗</span><span class="ti">외부 연결 목록 — 외부 서비스·시스템</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb"><div class="tbl"><table id="extTbl"></table></div></div>
+</section>
+
+<section class="win" data-win="ssp" id="sspWin" hidden>
+  <div class="wt"><span>📝</span><span class="ti">SSP_가상정밀_도면엔클레이브.hwp — 문서 편집</span><span class="ctl noprint"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="paperwrap"><div class="paper" id="sspPaper">
+    <table class="sign"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td>보안 담당</td><td></td><td id="signCell"></td></tr></table>
+    <h2>시스템 보안 계획 (SSP)</h2>
+    <div class="meta">NIST SP 800-171 3.12.4 — 시스템 경계, 운영 환경, 요구사항 구현 방법, 다른 시스템과의 관계</div>
+    <h3>1. 시스템 식별</h3>
+    <table><tr><th style="width:160px">시스템 이름</th><td><input type="text" data-f="sysName" style="width:100%"></td></tr>
+      <tr><th>시스템 소유자</th><td><select data-f="owner"></select></td></tr>
+      <tr><th>보안 책임자</th><td><select data-f="secOfficer"></select></td></tr>
+      <tr><th>SSP 검토 주기</th><td><select data-f="review"></select></td></tr></table>
+    <h3>2. 보호 업무와 보호 대상 정보</h3>
+    <table><tr><th style="width:160px">보호 업무</th><td><textarea data-f="mission" placeholder="이 시스템이 어떤 업무를 지원하고 무엇을 보호하는지"></textarea></td></tr>
+      <tr><th>보호 대상 정보</th><td id="infoTypes"></td></tr></table>
+    <h3>3. 시스템 경계와 운영 환경</h3>
+    <textarea data-f="boundary" placeholder="평가 범위 경계를 어떻게 구성·분리했는지 (구역, 장비, 통제)"></textarea>
+    <div id="sspBoundary" class="muted" style="font-size:.8rem;margin-top:4px"></div>
+    <h3>4. 자산 목록 (자산 대장에서 자동)</h3><div class="tbl" id="sspAssets"></div>
+    <h3>5. 데이터 흐름 (흐름 정의에서 자동)</h3><div id="sspFlows"></div>
+    <h3>6. 외부 연결 (외부 연결 목록에서 자동)</h3><div class="tbl" id="sspExt"></div>
+    <h3>7. 요구사항 구현 (핵심 10개)</h3>
+    <div class="tbl"><table id="ctrlTbl"></table></div>
+    <h3>8. 승인</h3>
+    <table><tr><th style="width:160px">승인자</th><td><select data-f="approver"></select></td><th style="width:90px">승인일</th><td><input type="date" data-f="approveDate"></td></tr></table>
+    <p class="noprint" style="text-align:right;margin-top:14px"><button class="btn ghost" onclick="window.print()">🖨️ 인쇄 · PDF 저장</button></p>
+  </div></div>
+</section>
+
+<section class="win" data-win="review" hidden>
+  <div class="wt"><span>🔎</span><span class="ti">내부 심사 — 심사 요청</span><span class="ctl"><span>─</span><span>☐</span><span>✕</span></span></div>
+  <div class="wb">
+    <p class="muted" style="margin-top:0" id="reviewSub"></p>
+    <p><button class="btn" id="reviewBtn">심사 요청</button> <button class="btn ghost" id="finalBtn">최종 제출</button></p>
+    <div id="reviewOut"></div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">교육용 실습 · 근거: 32 CFR 170.19 (CMMC 범위), CMMC Level 2 Scoping Guide, NIST SP 800-171 Rev.2 3.12.4, DFARS 252.204-7012 · 모든 회사·장비·서비스는 가상 · <a href="https://github.com/kongsu02-hue/cmmc">GitHub 저장소</a></div></footer>
+
+<script>
+"use strict";
+const KEY = "cmmc-ssp-v1";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const opt = (map, sel, blank = "선택") => (blank ? `<option value="">${blank}</option>` : "") + Object.entries(map).map(([v, l]) => `<option value="${v}" ${String(sel ?? "") === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+
+/* ---------- 정답 체계 (32 CFR 170.19(c) 범주) ---------- */
+const ROLES = { kim: "김대표 (대표·시스템 소유자)", lee: "이과장 (설계팀장)", choi: "최사원 (보안 담당)", jung: "정반장 (생산)", han: "한대리 (영업)", msp: "외부 MSP" };
+const CATS = { cui: "CUI 자산", spa: "SPA (보안 보호 자산)", crma: "CRMA (위험 관리 자산)", spec: "특수 자산", out: "범위 밖" };
+const CAT_COLOR = { cui: "var(--c-cui)", spa: "var(--c-spa)", crma: "var(--c-crma)", spec: "var(--c-spec)", out: "var(--c-out)" };
+const ZONES = { edge: "경계 (게이트웨이)", enc: "엔클레이브 VLAN 40", mgmt: "관리망 VLAN 99", biz: "업무망 VLAN 10", prod: "생산망 VLAN 50", dmz: "DMZ VLAN 30", guest: "손님망 VLAN 20" };
+const RATS = { acl: "VLAN·ACL로 엔클레이브·관리망 접근 차단, CUI 처리 수단 없음", pub: "공개 정보만 처리, DMZ로 분리", policy: "정책·교육으로 CUI 취급 금지 (기술적 경로는 남음)", ot: "제조사 고정 OS — 생산망 분리, USB 반입 절차로 관리", none: "별도 근거 없음" };
+const ASSETS = [
+  { id: "gw", name: "GSJ-GW", desc: "보안 게이트웨이 (방화벽·ACL·NAC·VLAN 라우팅)", fixedZone: "edge", a: { cat: "spa", zone: "edge", owner: ["choi", "msp"] } },
+  { id: "cad", name: "CAD-WS01", desc: "도면 작업 워크스테이션 — 포털에서 도면 내려받아 수정, CUI 전용 메일함 접속", a: { cat: "cui", zone: "enc", owner: ["lee"] } },
+  { id: "dnas", name: "DRW-NAS", desc: "도면 전용 저장소 (신규)", a: { cat: "cui", zone: "enc", owner: ["lee"] } },
+  { id: "prn", name: "DRW-PRN", desc: "도면실 프린터 — 가공용 도면 출력", a: { cat: "cui", zone: "enc", owner: ["lee"] } },
+  { id: "log", name: "LOG-SRV", desc: "로그 수집 서버 — 게이트웨이·엔클레이브 로그 저장", a: { cat: "spa", zone: "mgmt", owner: ["choi", "msp"] } },
+  { id: "adm", name: "ADM-PC", desc: "관리 전용 PC — 엔클레이브·게이트웨이 관리에만 사용", a: { cat: "spa", zone: "mgmt", owner: ["choi"] } },
+  { id: "cnc", name: "CNC-01", desc: "가공 설비 제어 PC — 제조사 고정 OS, USB로 도면 수신", a: { cat: "spec", zone: "prod", owner: ["jung"], rat: "ot" } },
+  { id: "sales", name: "SALES-NB", desc: "영업 노트북 — 일반 메일 사용, 정책상 도면 취급 금지", a: { cat: "crma", zone: "biz", owner: ["han"], rat: "policy" } },
+  { id: "pcs", name: "업무 PC 3대", desc: "KIM·LEE·CHOI-PC — 납품일정(FCI) 작성, 도면 접근 권한 없음", a: { cat: "out", zone: "biz", owner: ["kim", "choi"], rat: "acl" } },
+  { id: "nas", name: "GSJ-NAS", desc: "업무 공유 폴더 — 납품일정 등 FCI", a: { cat: "out", zone: "biz", owner: ["choi", "kim"], rat: "acl" } },
+  { id: "web", name: "GSJ-WEB", desc: "회사 소개 웹서버", a: { cat: "out", zone: "dmz", owner: ["choi", "kim"], rat: "pub" } },
+  { id: "guest", name: "손님 단말", desc: "방문객 노트북·휴대폰", a: { cat: "out", zone: "guest", owner: ["choi", "kim"], rat: "acl" } },
+];
+const EXT = [
+  { id: "mail", name: "클라우드 메일", desc: "업무 메일 + CUI 전용 메일함 (발주처와 도면 송수신)", a: { type: "csp", data: "cui", req: "fedramp", prot: ["tlsmfa"] } },
+  { id: "portal", name: "발주처 기술자료 포털", desc: "발주처 운영, 도면 내려받기", a: { type: "ext", data: "cui", req: "approve", prot: ["tlsmfa"] } },
+  { id: "bk", name: "백업 클라우드", desc: "DRW-NAS 야간 백업 저장", a: { type: "csp", data: "cui", req: "fedramp", prot: ["enc"] } },
+  { id: "msp", name: "MSP 원격 관리", desc: "게이트웨이·로그 서버 관리, 도면 파일 접근 권한 없음", a: { type: "esp", data: "spd", req: "crm", prot: ["vpnmfa"] } },
+  { id: "vendor", name: "설비 제조사 원격 지원", desc: "CNC-01 고장 시 원격 진단 (설비에 도면 잔존)", a: { type: "ext", data: "cui", req: "approve", prot: ["blocked"] } },
+  { id: "host", name: "홈페이지 호스팅", desc: "공개 홈페이지 (CUI·FCI 없음)", a: { type: "out", data: "none", req: "none", prot: null } },
+];
+const EXT_TYPE = { csp: "클라우드 서비스(CSP)", esp: "외부 서비스 제공자(ESP)", ext: "외부 시스템 (고객·제조사 소유)", out: "범위 밖" };
+const EXT_DATA = { cui: "CUI 저장·처리·전송", spd: "보안 보호 데이터(SPD)만", fci: "FCI만", none: "없음" };
+const EXT_REQ = { fedramp: "FedRAMP Moderate 이상·동등 + 고객 책임 매트릭스", crm: "서비스 설명서 + 고객 책임 매트릭스", approve: "접속 계정 승인·이용 규칙·접속 기록", none: "해당 없음" };
+const EXT_PROT = { tlsmfa: "TLS + 다요소 인증", vpnmfa: "VPN + 다요소 인증 + 세션 기록", enc: "전송·저장 암호화 (FIPS 검증 모듈)", blocked: "평시 차단, 필요 시 승인 후 일시 허용·감시", none: "별도 보호 없음" };
+const FLOWS = [
+  { id: "fci", name: "FCI — 납품일정", steps: [["recv", "수신", "mail"], ["proc", "처리", "pcs"], ["store", "저장", "nas"], ["send", "회신", "mail"]] },
+  { id: "cui", name: "CUI — 기술도면", steps: [["recv", "수신", "portal"], ["proc", "처리", "cad"], ["store", "저장", "dnas"], ["print", "출력", "prn"], ["mach", "설비 전달", "cnc"], ["bk", "백업", "bk"], ["send", "발주처 송부", "mail"]] },
+];
+const NODES = { ...Object.fromEntries(ASSETS.map(a => [a.id, a.name])), ...Object.fromEntries(EXT.map(e => [e.id, e.name + " (외부)"])) };
+const EV = { acct: "계정·장치 목록과 접근 승인 기록", fwacl: "방화벽·ACL 설정과 데이터 흐름도", logrev: "로그 검토 기록 (검토자 서명)", inv: "자산 대장·기준 구성 문서", mfa: "MFA 설정 화면과 예외 목록", media: "매체 폐기 기록부", scan: "취약점 스캔 보고서와 조치 내역", ssprev: "SSP 개정 이력과 승인 기록", train: "교육 이수 기록", policy: "정책 문서만", verbal: "담당자 구두 확인" };
+const CAD = { always: "상시 (자동)", event: "발생 시", week: "주 1회", month: "월 1회", quarter: "분기 1회", year: "연 1회 + 중요 변경 시", tri: "3년 1회" };
+const CTRLS = [
+  { id: "3.1.1", name: "승인된 사용자·장치만 접근", a: { ev: ["acct"], owner: ["choi"], cad: ["quarter"], kw: ["NAC", "802.1X", "계정"] } },
+  { id: "3.1.3", name: "CUI 흐름 통제", a: { ev: ["fwacl"], owner: ["choi"], cad: ["quarter", "year"], kw: ["ACL", "VLAN", "엔클레이브"] } },
+  { id: "3.2.1", name: "보안 인식 교육", a: { ev: ["train"], owner: ["choi", "kim"], cad: ["year"], kw: ["교육"] } },
+  { id: "3.3.1", name: "감사 로그 생성·보존·검토", a: { ev: ["logrev"], owner: ["choi", "msp"], cad: ["week"], kw: ["로그", "LOG-SRV"] } },
+  { id: "3.4.1", name: "기준 구성·자산 목록 유지", a: { ev: ["inv"], owner: ["choi"], cad: ["quarter", "year"], kw: ["자산", "대장", "기준"] } },
+  { id: "3.5.3", name: "다요소 인증", a: { ev: ["mfa"], owner: ["choi"], cad: ["quarter", "year"], kw: ["MFA", "다요소", "2단계"] } },
+  { id: "3.8.3", name: "매체 폐기 전 완전 삭제", a: { ev: ["media"], owner: ["lee"], cad: ["event"], kw: ["폐기", "삭제", "파기"] } },
+  { id: "3.11.2", name: "취약점 스캔", a: { ev: ["scan"], owner: ["choi", "msp"], cad: ["month", "quarter"], kw: ["스캔", "취약점"] } },
+  { id: "3.12.4", name: "SSP 작성·갱신", a: { ev: ["ssprev"], owner: ["kim", "choi"], cad: ["year"], kw: ["SSP", "갱신", "개정"] } },
+  { id: "3.13.1", name: "경계 보호", a: { ev: ["fwacl"], owner: ["choi", "msp"], cad: ["quarter", "year"], kw: ["방화벽", "경계", "GSJ-GW"] } },
+];
+const INFO = { cui: "CUI — 기술도면", fci: "FCI — 납품일정·계약 정보", spd: "SPD — 보안 로그·장비 설정", pub: "공개 정보 — 홈페이지" };
+
+/* ---------- 상태 ---------- */
+const blank = () => ({ mode: "exam", assets: {}, flows: { fci: {}, cui: {} }, ext: {}, ctrls: {}, f: {}, info: {}, reviews: 0, final: null });
+let S; try { S = JSON.parse(localStorage.getItem(KEY)) || blank(); } catch { S = blank(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+const EX = () => S.mode === "exam";
+const A = (id) => (S.assets[id] ||= {});
+
+/* ---------- 창 전환 ---------- */
+let cur = "brief";
+function openApp(a) {
+  cur = a;
+  document.querySelectorAll("[data-app]").forEach(b => b.setAttribute("aria-pressed", b.dataset.app === a));
+  document.querySelectorAll("[data-win]").forEach(w => w.hidden = w.dataset.win !== a);
+  render();
+}
+document.querySelectorAll("[data-app]").forEach(b => b.addEventListener("click", () => openApp(b.dataset.app)));
+
+/* ---------- 자산·범위 ---------- */
+function renderAssets() {
+  $("assetTbl").innerHTML = `<tr><th>자산</th><th>설명</th><th style="width:150px">범주</th><th style="width:150px">구역</th><th style="width:150px">소유자</th><th style="width:220px">운영 근거 (범위 밖·CRMA·특수)</th></tr>` +
+    ASSETS.map(a => { const s = A(a.id), needR = ["out", "crma", "spec"].includes(s.cat);
+      return `<tr><td><span class="dot" style="background:${CAT_COLOR[s.cat] || "transparent"};border:1px solid var(--line)"></span><b>${a.name}</b></td><td>${esc(a.desc)}</td>
+        <td><select data-as="${a.id}" data-k="cat">${opt(CATS, s.cat)}</select></td>
+        <td>${a.fixedZone ? ZONES[a.fixedZone] : `<select data-as="${a.id}" data-k="zone">${opt(Object.fromEntries(Object.entries(ZONES).filter(([k]) => k !== "edge")), s.zone)}</select>`}</td>
+        <td><select data-as="${a.id}" data-k="owner">${opt(ROLES, s.owner)}</select></td>
+        <td>${needR ? `<select data-as="${a.id}" data-k="rat">${opt(RATS, s.rat)}</select>` : '<span class="muted">해당 없음</span>'}</td></tr>`; }).join("");
+}
+$("assetTbl").addEventListener("change", e => { const el = e.target; if (!el.dataset.as) return; A(el.dataset.as)[el.dataset.k] = el.value; save(); render(); });
+
+/* ---------- 흐름 ---------- */
+function renderFlows() {
+  $("flowTbl").innerHTML = FLOWS.map(f => `<tr><th colspan="2" style="background:${f.id === "fci" ? "var(--soft)" : "var(--bad-soft)"}">${f.name}</th></tr>` +
+    f.steps.map(([k, label], i) => `<tr><td style="width:160px">${i + 1}. ${label}</td><td><select data-fl="${f.id}" data-st="${k}">${opt(NODES, S.flows[f.id][k])}</select></td></tr>`).join("")).join("");
+}
+$("flowTbl").addEventListener("change", e => { const el = e.target; if (!el.dataset.fl) return; S.flows[el.dataset.fl][el.dataset.st] = el.value; save(); render(); });
+
+/* ---------- 외부 연결 ---------- */
+function renderExt() {
+  $("extTbl").innerHTML = `<tr><th>서비스</th><th>설명</th><th>유형</th><th>다루는 데이터</th><th>필수 조건</th><th>연결 보호</th></tr>` +
+    EXT.map(x => { const s = (S.ext[x.id] ||= {});
+      return `<tr><td><b>${x.name}</b></td><td>${esc(x.desc)}</td>
+        <td><select data-ex="${x.id}" data-k="type">${opt(EXT_TYPE, s.type)}</select></td><td><select data-ex="${x.id}" data-k="data">${opt(EXT_DATA, s.data)}</select></td>
+        <td><select data-ex="${x.id}" data-k="req">${opt(EXT_REQ, s.req)}</select></td><td><select data-ex="${x.id}" data-k="prot">${opt(EXT_PROT, s.prot)}</select></td></tr>`; }).join("");
+}
+$("extTbl").addEventListener("change", e => { const el = e.target; if (!el.dataset.ex) return; S.ext[el.dataset.ex][el.dataset.k] = el.value; save(); render(); });
+
+/* ---------- 아키텍처도 ---------- */
+function renderDiagram() {
+  const W = 1000, zoneKeys = ["enc", "mgmt", "biz", "prod", "dmz", "guest"], zw = 158, zx0 = 8, zy = 205;
+  const pos = {}, t = (x, y, s, o = {}) => `<text x="${x}" y="${y}" font-size="${o.size || 10.5}" ${o.bold ? 'font-weight="700"' : ""} fill="${o.fill || "var(--ink)"}" ${o.anchor ? `text-anchor="${o.anchor}"` : ""}>${esc(s)}</text>`;
+  let svg = "", maxRows = 1;
+  // 외부
+  EXT.forEach((x, i) => { const bx = 8 + i * 165; svg += `<rect x="${bx}" y="8" width="155" height="40" rx="6" fill="var(--title)" stroke="var(--line)"/>` + t(bx + 77, 25, x.name, { anchor: "middle", bold: 1, size: 10 }) + t(bx + 77, 40, EXT_TYPE[S.ext[x.id]?.type] || "유형 미정", { anchor: "middle", size: 9, fill: "var(--muted)" }); pos[x.id] = [bx + 77, 48]; });
+  svg += `<rect x="${W / 2 - 110}" y="98" width="220" height="44" rx="6" fill="var(--title)" stroke="${CAT_COLOR[A("gw").cat] || "var(--line)"}" stroke-width="2"/>` + t(W / 2, 117, "GSJ-GW 보안 게이트웨이", { anchor: "middle", bold: 1 }) + t(W / 2, 133, "방화벽 · ACL · NAC · VLAN 라우팅", { anchor: "middle", size: 9, fill: "var(--muted)" });
+  pos.gw = [W / 2, 142];
+  svg += `<line x1="${W / 2}" y1="48" x2="${W / 2}" y2="98" stroke="var(--muted)" stroke-width="2"/>`;
+  const inZone = Object.fromEntries(zoneKeys.map(z => [z, ASSETS.filter(a => !a.fixedZone && A(a.id).zone === z)]));
+  const unplaced = ASSETS.filter(a => !a.fixedZone && !A(a.id).zone);
+  zoneKeys.forEach(z => maxRows = Math.max(maxRows, inZone[z].length));
+  const zh = 44 + maxRows * 30;
+  zoneKeys.forEach((z, i) => {
+    const x = zx0 + i * (zw + 7), inScope = inZone[z].some(a => A(a.id).cat && A(a.id).cat !== "out");
+    svg += `<line x1="${W / 2}" y1="142" x2="${x + zw / 2}" y2="${zy}" stroke="var(--line)" stroke-width="1.5"/>`;
+    svg += `<rect x="${x}" y="${zy}" width="${zw}" height="${zh}" rx="8" fill="var(--bg)" stroke="var(--line)"/>` + t(x + 8, zy + 17, ZONES[z], { bold: 1, size: 10 });
+    if (inScope) svg += `<rect x="${x - 3}" y="${zy - 3}" width="${zw + 6}" height="${zh + 6}" rx="10" fill="none" stroke="#e8890c" stroke-width="2" stroke-dasharray="6 4"/>` + t(x + zw - 6, zy + 17, "평가 범위", { anchor: "end", size: 8.5, fill: "#e8890c", bold: 1 });
+    inZone[z].forEach((a, j) => { const y = zy + 30 + j * 30, c = CAT_COLOR[A(a.id).cat] || "var(--line)";
+      svg += `<rect x="${x + 8}" y="${y}" width="${zw - 16}" height="24" rx="4" fill="var(--card)" stroke="${c}" stroke-width="2"/>` + t(x + 14, y + 16, a.name, { size: 10 });
+      pos[a.id] = [x + zw / 2, y + 12]; });
+  });
+  let h = zy + zh + 20;
+  if (unplaced.length) { svg += t(8, h, `구역 미지정: ${unplaced.map(a => a.name).join(", ")}`, { size: 10, fill: "var(--bad)" }); h += 16; }
+  // 흐름
+  FLOWS.forEach((f, fi) => {
+    const col = f.id === "fci" ? "var(--f-fci)" : "var(--f-cui)";
+    const pts = f.steps.map(([k]) => S.flows[f.id][k]).filter(Boolean);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = pos[pts[i]], p2 = pos[pts[i + 1]]; if (!p1 || !p2 || pts[i] === pts[i + 1]) continue;
+      const off = fi ? 4 : -4;
+      svg += `<line x1="${p1[0] + off}" y1="${p1[1]}" x2="${p2[0] + off}" y2="${p2[1]}" stroke="${col}" stroke-width="2" marker-end="url(#ar${fi})" opacity=".85"/>` +
+        `<circle cx="${(p1[0] + p2[0]) / 2 + off}" cy="${(p1[1] + p2[1]) / 2}" r="8" fill="${col}"/>` + t((p1[0] + p2[0]) / 2 + off, (p1[1] + p2[1]) / 2 + 3.5, String(i + 1), { anchor: "middle", size: 9, fill: "#fff", bold: 1 });
+    }
+  });
+  const defs = `<defs>${["var(--f-fci)", "var(--f-cui)"].map((c, i) => `<marker id="ar${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join("")}</defs>`;
+  $("diagram").innerHTML = `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img" aria-label="가상정밀 도면 엔클레이브 아키텍처도" style="font-family:inherit">${defs}${svg}</svg>`;
+}
+
+/* ---------- SSP ---------- */
+const FIELDS = { owner: ROLES, secOfficer: ROLES, review: CAD, approver: ROLES };
+function renderSSP() {
+  document.querySelectorAll("#sspPaper [data-f]").forEach(el => {
+    const k = el.dataset.f;
+    if (el.tagName === "SELECT") el.innerHTML = opt(FIELDS[k], S.f[k]);
+    else if (document.activeElement !== el) el.value = S.f[k] || "";
+  });
+  $("signCell").textContent = S.f.approver ? ROLES[S.f.approver].split(" ")[0] : "";
+  $("infoTypes").innerHTML = Object.entries(INFO).map(([k, l]) => `<label style="margin-right:14px"><input type="checkbox" data-info="${k}" ${S.info[k] ? "checked" : ""}> ${l}</label>`).join("");
+  const scopeAssets = ASSETS.filter(a => A(a.id).cat && A(a.id).cat !== "out");
+  $("sspBoundary").textContent = `자동 요약 — 평가 범위 자산 ${scopeAssets.length}개: ${scopeAssets.map(a => a.name).join(", ") || "없음"} · 범위 밖 ${ASSETS.filter(a => A(a.id).cat === "out").length}개`;
+  $("sspAssets").innerHTML = `<table><tr><th>자산</th><th>범주</th><th>구역</th><th>소유자</th><th>운영 근거</th></tr>${ASSETS.map(a => { const s = A(a.id);
+    return `<tr><td>${a.name}</td><td>${CATS[s.cat] || "<span class='tag bad'>미정</span>"}</td><td>${ZONES[a.fixedZone || s.zone] || "-"}</td><td>${(ROLES[s.owner] || "-").split(" (")[0]}</td><td>${["out", "crma", "spec"].includes(s.cat) ? (RATS[s.rat] || "<span class='tag bad'>미정</span>") : "-"}</td></tr>`; }).join("")}</table>`;
+  $("sspFlows").innerHTML = FLOWS.map(f => `<p style="margin:4px 0"><b>${f.name}</b>: ${f.steps.map(([k, l]) => `${l} <b>${esc(NODES[S.flows[f.id][k]] || "?")}</b>`).join(" → ")}</p>`).join("");
+  $("sspExt").innerHTML = `<table><tr><th>서비스</th><th>유형</th><th>데이터</th><th>필수 조건</th><th>연결 보호</th></tr>${EXT.map(x => { const s = S.ext[x.id] || {};
+    return `<tr><td>${x.name}</td><td>${EXT_TYPE[s.type] || "-"}</td><td>${EXT_DATA[s.data] || "-"}</td><td>${EXT_REQ[s.req] || "-"}</td><td>${EXT_PROT[s.prot] || "-"}</td></tr>`; }).join("")}</table>`;
+  $("ctrlTbl").innerHTML = `<tr><th style="width:150px">요구사항</th><th>구현 설명</th><th style="width:160px">운영 근거</th><th style="width:120px">소유자</th><th style="width:120px">주기</th></tr>` +
+    CTRLS.map(c => { const s = (S.ctrls[c.id] ||= {});
+      return `<tr><td><b>${c.id}</b><br><span class="muted">${c.name}</span></td>
+        <td><textarea data-c="${c.id}" data-k="desc" placeholder="무엇을, 어떤 장비·절차로 구현했는지">${esc(s.desc || "")}</textarea></td>
+        <td><select data-c="${c.id}" data-k="ev">${opt(EV, s.ev)}</select></td><td><select data-c="${c.id}" data-k="owner">${opt(ROLES, s.owner)}</select></td>
+        <td><select data-c="${c.id}" data-k="cad">${opt(CAD, s.cad)}</select></td></tr>`; }).join("");
+}
+$("sspPaper").addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.f) S.f[el.dataset.f] = el.value;
+  else if (el.dataset.info) S.info[el.dataset.info] = el.checked;
+  else if (el.dataset.c) (S.ctrls[el.dataset.c] ||= {})[el.dataset.k] = el.value;
+  else return;
+  save(); renderChips(); if (el.tagName === "SELECT" || el.type === "checkbox") renderSSP();
+});
+$("sspPaper").addEventListener("input", e => { const el = e.target;
+  if (el.dataset.f) S.f[el.dataset.f] = el.value; else if (el.dataset.c) (S.ctrls[el.dataset.c] ||= {})[el.dataset.k] = el.value; else return; save(); renderChips(); });
+
+/* ---------- 심사 ---------- */
+const has = (txt, kws) => kws.some(k => (txt || "").toUpperCase().includes(k.toUpperCase()));
+function audit() {
+  const F = [];  // [영역, 통과, 지적]
+  const chk = (sec, ok, why) => F.push([sec, !!ok, why]);
+  // 식별·보호 업무
+  chk("식별·보호 업무", (S.f.sysName || "").trim().length >= 4, "시스템 이름이 없거나 너무 짧음");
+  chk("식별·보호 업무", S.f.owner === "kim", "시스템 소유자는 위험을 수용하고 SSP를 승인할 권한이 있는 경영진이어야 함");
+  chk("식별·보호 업무", S.f.secOfficer === "choi", "보안 책임자는 일상 보안 운영을 맡는 보안 담당이어야 함");
+  chk("식별·보호 업무", S.f.review === "year", "SSP는 정기적으로(통상 연 1회) 그리고 중요한 변경 때 갱신해야 함 (3.12.4)");
+  chk("식별·보호 업무", (S.f.mission || "").trim().length >= 25 && has(S.f.mission, ["도면", "가공", "CUI"]), "보호 업무 설명에 시스템이 지원하는 업무(도면 기반 정밀가공)와 보호 대상(CUI)이 드러나지 않음");
+  chk("식별·보호 업무", S.info.cui && S.info.fci && S.info.spd && !S.info.pub, "보호 대상 정보 유형이 틀림 — CUI뿐 아니라 FCI, 보안 장비가 만드는 SPD도 보호 대상이며 공개 정보는 아님");
+  // 자산·범위
+  ASSETS.forEach(a => { const s = A(a.id), ans = a.a;
+    chk("자산·범위", s.cat === ans.cat, `${a.name}: 범주 오류 — ${({ cui: "CUI를 처리·저장·전송하므로 CUI 자산", spa: "범위에 보안 기능을 제공하므로 SPA", crma: "CUI에 접근할 수는 있으나 정책으로 사용을 막는 자산이므로 CRMA", spec: "CUI를 다루지만 표준 보안 적용이 어려운 OT 장비이므로 특수 자산", out: "CUI에 접근·영향이 불가능하므로 범위 밖" })[ans.cat]}`);
+    chk("자산·범위", ans.owner.includes(s.owner), `${a.name}: 소유자가 자산의 업무 책임과 맞지 않음`);
+    if (["out", "crma", "spec"].includes(ans.cat)) chk("자산·범위", s.rat === ans.rat, `${a.name}: 운영 근거가 범주에 맞지 않음 — 범위 밖은 기술적 분리를, CRMA는 정책 통제를, 특수 자산은 분리·반입 절차를 근거로 제시`);
+  });
+  // 아키텍처
+  ASSETS.filter(a => !a.fixedZone).forEach(a => chk("아키텍처·경계", A(a.id).zone === a.a.zone, `${a.name}: 구역 배치가 엔클레이브 설계와 맞지 않음 (CUI 자산은 엔클레이브, 보안 관리 자산은 관리망, OT는 생산망)`));
+  chk("아키텍처·경계", (S.f.boundary || "").trim().length >= 25 && has(S.f.boundary, ["엔클레이브", "VLAN 40", "VLAN40"]) && has(S.f.boundary, ["ACL", "GSJ-GW", "게이트웨이"]), "경계 설명에 엔클레이브(VLAN 40)와 이를 분리하는 통제(게이트웨이 ACL)가 드러나지 않음");
+  // 흐름
+  FLOWS.forEach(f => f.steps.forEach(([k, l, ans]) => chk("FCI·CUI 흐름", S.flows[f.id][k] === ans, `${f.name} '${l}' 단계의 자산이 시나리오와 다름`)));
+  chk("FCI·CUI 흐름", ASSETS.every(a => A(a.id).cat !== "out" || !FLOWS.find(f => f.id === "cui").steps.some(([k]) => S.flows.cui[k] === a.id)), "CUI 흐름이 '범위 밖'으로 분류한 자산을 지나감 — 흐름과 분류가 모순");
+  // 외부 연결
+  EXT.forEach(x => { const s = S.ext[x.id] || {};
+    chk("외부 연결", s.type === x.a.type, `${x.name}: 유형 분류 오류`);
+    chk("외부 연결", s.data === x.a.data, `${x.name}: 다루는 데이터 판단 오류`);
+    chk("외부 연결", s.req === x.a.req, `${x.name}: 필수 조건 오류 — CUI를 다루는 클라우드는 FedRAMP Moderate 이상·동등, 보안 기능 ESP는 서비스 설명서와 책임 매트릭스`);
+    if (x.a.prot) chk("외부 연결", x.a.prot.includes(s.prot), `${x.name}: 연결 보호 방식이 위험에 맞지 않음`);
+  });
+  // 구현·운영 근거
+  CTRLS.forEach(c => { const s = S.ctrls[c.id] || {};
+    chk("구현·운영 근거", (s.desc || "").trim().length >= 20 && has(s.desc, c.a.kw), `${c.id}: 구현 설명이 구체적이지 않음 (어떤 장비·절차로 구현했는지)`);
+    chk("구현·운영 근거", c.a.ev.includes(s.ev), `${c.id}: 운영 근거가 실제로 운영되고 있음을 보여 주지 못함`);
+    chk("구현·운영 근거", c.a.owner.includes(s.owner), `${c.id}: 소유자가 수행 책임과 맞지 않음`);
+    chk("구현·운영 근거", c.a.cad.includes(s.cad), `${c.id}: 수행·검토 주기가 위험과 맞지 않음`);
+  });
+  chk("승인", S.f.approver === "kim" && !!S.f.approveDate, "SSP는 시스템 소유자가 승인하고 승인일을 기록해야 함");
+  return F;
+}
+function renderReview(final) {
+  const F = audit(), secs = [...new Set(F.map(x => x[0]))];
+  const score = Math.round(F.filter(x => x[1]).length / F.length * 100);
+  const showDetail = final || !EX();
+  $("cScore").textContent = `${score}점`;
+  $("reviewOut").innerHTML = `<div class="score">${secs.map(s => { const g = F.filter(x => x[0] === s), ok = g.filter(x => x[1]).length;
+      return `<div>${s}<b>${ok} / ${g.length}</b><span class="tag ${ok === g.length ? "ok" : "warn"}">${Math.round(ok / g.length * 100)}%</span></div>`; }).join("")}<div>종합<b>${score}점</b>심사 ${S.reviews}회</div></div>` +
+    (showDetail ? (F.some(x => !x[1]) ? `<h3 style="font-size:.95rem">지적 사항 (${F.filter(x => !x[1]).length}건)</h3><ul class="finds">${F.filter(x => !x[1]).map(x => `<li><span class="tag bad">${x[0]}</span> ${esc(x[2])}</li>`).join("")}</ul>` : `<p class="msg ok">지적 사항 없음 — SSP가 시나리오 요구를 모두 충족합니다.</p>`)
+      : `<p class="note">평가 모드: 영역별 점수만 공개합니다. 지적 사항은 최종 제출 후 공개됩니다.</p>`);
+}
+$("reviewBtn").addEventListener("click", () => { S.reviews++; save(); renderReview(false); });
+$("finalBtn").addEventListener("click", () => { if (!confirm("최종 제출하면 지적 사항이 모두 공개됩니다. 제출할까요?")) return; S.final = Date.now(); save(); renderReview(true); });
+
+/* ---------- 공통 ---------- */
+function progress() {
+  const need = ASSETS.length * 3 + ASSETS.filter(a => !a.fixedZone).length + FLOWS.reduce((a, f) => a + f.steps.length, 0) + EXT.length * 4 + CTRLS.length * 4 + 7;
+  let got = 0;
+  ASSETS.forEach(a => { const s = A(a.id); got += !!s.cat + !!s.owner + (a.fixedZone ? 0 : !!s.zone) + (["out", "crma", "spec"].includes(s.cat) ? !!s.rat : 1); });
+  FLOWS.forEach(f => f.steps.forEach(([k]) => got += !!S.flows[f.id][k]));
+  EXT.forEach(x => { const s = S.ext[x.id] || {}; got += !!s.type + !!s.data + !!s.req + !!s.prot; });
+  CTRLS.forEach(c => { const s = S.ctrls[c.id] || {}; got += !!(s.desc || "").trim() + !!s.ev + !!s.owner + !!s.cad; });
+  ["sysName", "owner", "secOfficer", "review", "mission", "boundary", "approver"].forEach(k => got += !!S.f[k]);
+  return Math.min(100, Math.round(got / need * 100));
+}
+function renderChips() { $("cMode").textContent = EX() ? "평가" : "연습"; $("cDone").textContent = progress() + "%"; }
+function render() {
+  renderChips();
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === S.mode);
+  if (cur === "assets") renderAssets();
+  if (cur === "flow") renderFlows();
+  if (cur === "ext") renderExt();
+  if (cur === "arch") renderDiagram();
+  if (cur === "ssp") renderSSP();
+  if (cur === "review") { $("reviewSub").textContent = EX() ? "평가 모드 — 심사 요청 시 영역별 점수만 보입니다. 최종 제출하면 지적 사항이 공개됩니다." : "연습 모드 — 심사 요청 때마다 지적 사항과 근거가 보입니다."; if (S.reviews || S.final) renderReview(!!S.final); }
+}
+document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => { S.mode = r.value; save(); render(); }));
+$("resetBtn").addEventListener("click", () => { if (!confirm("입력한 내용을 모두 지울까요?")) return; const m = S.mode; S = blank(); S.mode = m; save(); $("reviewOut").innerHTML = ""; $("cScore").textContent = "—"; render(); });
+openApp("brief");
+</script>
+</body>
+</html>
